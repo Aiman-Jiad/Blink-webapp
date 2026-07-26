@@ -26,6 +26,9 @@ const KEYS = {
   seeded: 'blink:seeded',
 } as const;
 
+// Bump when seed data changes to force a re-seed for existing users.
+const SEED_VERSION = 2;
+
 function read<T>(key: string, fallback: T): T {
   try {
     const raw = localStorage.getItem(key);
@@ -133,7 +136,7 @@ const SEED_CHATS: Chat[] = [
     createdBy: 'me',
     createdAt: Date.now() - 86400000 * 5,
     updatedAt: Date.now() - 1000 * 60 * 5,
-    typingUsers: ['u_alice'],
+    typingUsers: [],
   },
   {
     id: 'c_design_team',
@@ -283,13 +286,15 @@ const SEED_STATUSES: StatusItem[] = [
 ];
 
 export function ensureSeed(): void {
-  if (read(KEYS.seeded, false)) return;
+  const currentVersion = read<number>('blink:seed_version', 0);
+  if (currentVersion >= SEED_VERSION) return;
   write(KEYS.users, SEED_USERS);
   write(KEYS.chats, SEED_CHATS);
   write(KEYS.messages, seedMessages());
   write(KEYS.statuses, SEED_STATUSES);
   write(KEYS.notifications, [] as Notification[]);
   write(KEYS.seeded, true);
+  write('blink:seed_version', SEED_VERSION);
 }
 
 // ---------------------------------------------------------------------------

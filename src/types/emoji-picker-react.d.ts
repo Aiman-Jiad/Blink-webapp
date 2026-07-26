@@ -1,19 +1,8 @@
 declare module 'emoji-picker-react' {
   import type { FC } from 'react';
 
-  export enum EmojiStyle {
-    NATIVE = 'native',
-    APPLE = 'apple',
-    GOOGLE = 'google',
-    TWITTER = 'twitter',
-    FACEBOOK = 'facebook',
-  }
-
-  export enum Theme {
-    LIGHT = 'light',
-    DARK = 'dark',
-    AUTO = 'auto',
-  }
+  export type EmojiStyle = 'native' | 'apple' | 'google' | 'twitter' | 'facebook';
+  export type Theme = 'light' | 'dark' | 'auto';
 
   export interface EmojiClickData {
     emoji: string;

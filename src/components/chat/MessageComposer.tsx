@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, type DragEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import EmojiPicker, { Theme as EmojiTheme, EmojiStyle } from 'emoji-picker-react';
+import EmojiPicker from 'emoji-picker-react';
 import {
   Smile, Paperclip, Send, Mic, X, Image as ImageIcon, FileText, Video,
   Camera, CornerUpLeft, Loader2, Trash2,
@@ -39,7 +39,7 @@ export function MessageComposer({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const enterToSend = useSettingsStore((s) => s.enterToSend);
 
-  const emojiTheme: EmojiTheme = theme === 'dark' ? EmojiTheme.DARK : EmojiTheme.LIGHT;
+  const emojiTheme: 'dark' | 'light' = theme === 'dark' ? 'dark' : 'light';
 
   function handleTextChange(value: string) {
     setText(value);
@@ -232,7 +232,7 @@ export function MessageComposer({
           <PopoverContent className="w-auto border-0 p-0" side="top" align="start">
             <EmojiPicker
               theme={emojiTheme}
-              emojiStyle={EmojiStyle.NATIVE}
+              emojiStyle="native"
               onEmojiClick={(emoji: { emoji: string }) => {
                 setText((t) => t + emoji.emoji);
                 setEmojiOpen(false);

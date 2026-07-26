@@ -39,6 +39,23 @@ const USER_PHOTOS: Record<string, string> = {
   u_priya: 'https://images.pexels.com/photos/762020/pexels-photo-762020.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&fit=crop',
 };
 
+const REPLIES = [
+  'That sounds great!',
+  'Haha, love it 😄',
+  'Got it, thanks!',
+  'Interesting… tell me more.',
+  'Sure, sounds good to me.',
+  'Let me check and get back to you.',
+  'Same here!',
+  'Really? Wow.',
+  'No worries at all 👍',
+  'Talk soon!',
+];
+
+function pickReply(_text: string): string {
+  return REPLIES[Math.floor(Math.random() * REPLIES.length)];
+}
+
 export default function ChatViewPage() {
   const { chatId } = useParams();
   const navigate = useNavigate();
@@ -76,21 +93,76 @@ export default function ChatViewPage() {
     return () => setActiveChat(null);
   }, [chatId]);
 
-  // Simulated auto-reply for demo realism
+  // Simulated delivered -> read progression + transient typing indicator
+  // + auto-reply for demo realism. The typing indicator only appears
+  // briefly after the other user "starts typing", then clears.
   const lastMsg = messages[chatId ?? '']?.[messages[chatId ?? '']?.length - 1];
   useEffect(() => {
     if (!chatId || !lastMsg || lastMsg.senderId !== meId || lastMsg.type !== 'text') return;
-    // Simulate delivered -> read
+
+    // 1. sending -> delivered
     const t1 = setTimeout(() => {
       updateMessage({ ...lastMsg, status: 'delivered' });
       dataService.messages.update({ ...lastMsg, status: 'delivered' });
-    }, 500);
+    }, 600);
+
+    // 2. delivered -> read
     const t2 = setTimeout(() => {
       updateMessage({ ...lastMsg, status: 'read' });
       dataService.messages.update({ ...lastMsg, status: 'read' });
-    }, 1500);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, [lastMsg, chatId, meId, updateMessage]);
+    }, 1600);
+
+    // 3. Other user starts "typing" (transient, 2.2s)
+    const t3 = setTimeout(() => {
+      if (!chat) return;
+      const otherId = chat.participantIds.find((id) => id !== meId);
+      if (!otherId) return;
+      const updated = { ...chat, typingUsers: [otherId] };
+      updateChat(updated);
+      dataService.chats.upsert(updated);
+    }, 2200);
+
+    // 4. Other user stops typing + sends a reply
+    const t4 = setTimeout(() => {
+      if (!chat) return;
+      // Clear typing
+      const cleared = { ...chat, typingUsers: [] };
+      updateChat(cleared);
+      dataService.chats.upsert(cleared);
+      // Send a reply
+      const reply = pickReply(lastMsg.text);
+      const replyMsg: Message = {
+        id: nanoid(),
+        chatId,
+        senderId: chat.participantIds.find((id) => id !== meId) ?? 'u_alice',
+        type: 'text',
+        text: reply,
+        attachments: [],
+        replyTo: null,
+        status: 'read',
+        reactions: [],
+        starred: false,
+        pinned: false,
+        deletedForEveryone: false,
+        deletedFor: [],
+        readBy: [meId],
+        createdAt: Date.now(),
+      };
+      addMessage(replyMsg);
+      dataService.messages.add(replyMsg);
+      // Update chat lastMessage
+      const updatedChat = {
+        ...cleared,
+        lastMessage: { text: reply, senderId: replyMsg.senderId, type: 'text' as const, createdAt: Date.now() },
+        updatedAt: Date.now(),
+      };
+      updateChat(updatedChat);
+      dataService.chats.upsert(updatedChat);
+    }, 4500);
+
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastMsg?.id, chatId, meId]);
 
   const chatMessages = useMemo(() => messages[chatId ?? ''] ?? [], [messages, chatId]);
   const grouped = useMemo(() => groupByDate(chatMessages), [chatMessages]);
@@ -136,8 +208,16 @@ export default function ChatViewPage() {
 
   function handleTyping(typing: boolean) {
     if (!chat) return;
-    // In a real app this would write to Firestore. Mock: no-op.
-    void typing;
+    const isAlreadyTyping = chat.typingUsers.includes(meId);
+    if (typing && !isAlreadyTyping) {
+      const updated = { ...chat, typingUsers: [...chat.typingUsers, meId] };
+      updateChat(updated);
+      dataService.chats.upsert(updated);
+    } else if (!typing && isAlreadyTyping) {
+      const updated = { ...chat, typingUsers: chat.typingUsers.filter((id) => id !== meId) };
+      updateChat(updated);
+      dataService.chats.upsert(updated);
+    }
   }
 
   function handleReact(message: Message, emoji: string) {
