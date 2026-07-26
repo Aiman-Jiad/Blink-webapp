@@ -33,6 +33,10 @@ jobs:
       - name: Build
         run: npm run build
         env:
+          # Set the base path to the repository name so all asset URLs
+          # resolve correctly on GitHub Pages (/<repo-name>/assets/...).
+          # This is derived automatically from the repo name.
+          VITE_BASE_PATH: /${{ github.event.repository.name }}/
           # If you want real Firebase in production, add these as repository
           # secrets (Settings → Secrets and variables → Actions):
           #   VITE_FIREBASE_API_KEY
