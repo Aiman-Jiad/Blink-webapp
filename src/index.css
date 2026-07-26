@@ -1,0 +1,251 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* WhatsApp-inspired light theme — soft warm neutrals + green accent */
+    --background: 96 25% 97%;
+    --foreground: 160 18% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 160 18% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 160 18% 12%;
+
+    --primary: 152 56% 40%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 152 30% 95%;
+    --secondary-foreground: 152 30% 18%;
+
+    --muted: 96 14% 94%;
+    --muted-foreground: 152 8% 42%;
+
+    --accent: 152 40% 92%;
+    --accent-foreground: 152 30% 18%;
+
+    --destructive: 0 74% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 96 14% 89%;
+    --input: 96 14% 89%;
+    --ring: 152 56% 40%;
+
+    /* Blink brand colors */
+    --chat-bubble-me: 152 56% 88%;
+    --chat-bubble-them: 0 0% 100%;
+    --chat-bg: 152 20% 90%;
+    --panel: 0 0% 100%;
+    --panel-elevated: 0 0% 100%;
+
+    --chart-1: 152 56% 40%;
+    --chart-2: 200 70% 50%;
+    --chart-3: 38 80% 55%;
+    --chart-4: 280 55% 60%;
+    --chart-5: 340 70% 55%;
+
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    /* WhatsApp dark — deep teal-black with green accents */
+    --background: 192 22% 9%;
+    --foreground: 0 0% 96%;
+
+    --card: 192 20% 12%;
+    --card-foreground: 0 0% 96%;
+
+    --popover: 192 22% 13%;
+    --popover-foreground: 0 0% 96%;
+
+    --primary: 152 50% 48%;
+    --primary-foreground: 192 30% 8%;
+
+    --secondary: 192 16% 18%;
+    --secondary-foreground: 0 0% 96%;
+
+    --muted: 192 16% 16%;
+    --muted-foreground: 0 0% 64%;
+
+    --accent: 192 18% 22%;
+    --accent-foreground: 0 0% 96%;
+
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 192 16% 20%;
+    --input: 192 16% 22%;
+    --ring: 152 50% 48%;
+
+    --chat-bubble-me: 152 42% 22%;
+    --chat-bubble-them: 192 18% 17%;
+    --chat-bg: 192 26% 7%;
+    --panel: 192 20% 11%;
+    --panel-elevated: 192 20% 14%;
+
+    --chart-1: 152 50% 48%;
+    --chart-2: 200 70% 55%;
+    --chart-3: 38 80% 58%;
+    --chart-4: 280 55% 65%;
+    --chart-5: 340 70% 60%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    overscroll-behavior: none;
+  }
+
+  ::selection {
+    background: hsl(var(--primary) / 0.3);
+  }
+
+  /* Custom scrollbar — WhatsApp style */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+@layer components {
+  .font-display {
+    font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  }
+
+  /* WhatsApp chat doodle background */
+  .chat-doodle {
+    background-color: hsl(var(--chat-bg));
+    background-image:
+      radial-gradient(hsl(var(--muted-foreground) / 0.08) 1px, transparent 1px),
+      radial-gradient(hsl(var(--muted-foreground) / 0.05) 1px, transparent 1px);
+    background-size: 24px 24px, 48px 48px;
+    background-position: 0 0, 12px 12px;
+  }
+
+  .glass {
+    background: hsl(var(--panel) / 0.72);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+  }
+
+  .glass-strong {
+    background: hsl(var(--panel) / 0.88);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+  }
+
+  /* Soft elevated card */
+  .card-soft {
+    @apply rounded-2xl border border-border/60 bg-card shadow-sm;
+  }
+
+  .ring-focus {
+    @apply outline-none ring-2 ring-ring/40 ring-offset-2 ring-offset-background;
+  }
+
+  /* Typing indicator dots */
+  .typing-dot {
+    animation: typing-bounce 1.2s infinite ease-in-out;
+  }
+  .typing-dot:nth-child(2) {
+    animation-delay: 0.15s;
+  }
+  .typing-dot:nth-child(3) {
+    animation-delay: 0.3s;
+  }
+
+  /* Status ring */
+  .status-ring {
+    background: conic-gradient(
+      hsl(var(--primary)) 0deg,
+      hsl(var(--primary)) 280deg,
+      hsl(var(--muted)) 280deg,
+      hsl(var(--muted)) 360deg
+    );
+  }
+}
+
+@layer utilities {
+  .animate-fade-in {
+    animation: fade-in 0.25s ease-out both;
+  }
+  .animate-slide-up {
+    animation: slide-up 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .animate-scale-in {
+    animation: scale-in 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .animate-pop {
+    animation: pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      hsl(var(--muted)) 0%,
+      hsl(var(--muted) / 0.5) 50%,
+      hsl(var(--muted)) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite;
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes pop {
+  0% { transform: scale(0.8); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes typing-bounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}

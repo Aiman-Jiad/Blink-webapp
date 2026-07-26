@@ -1,0 +1,46 @@
+// ============================================================================
+// Blink — Firebase Storage Security Rules
+//
+// Controls file uploads (profile photos, media attachments, status images).
+// Apply in Firebase Console → Storage → Rules.
+// ============================================================================
+
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Profile photos — user owns their own folder
+    match /users/{userId}/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn()
+        && request.auth.uid == userId
+        && request.resource.size < 5 * 1024 * 1024  // 5MB
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // Chat media — any authenticated user can upload to chat folders
+    match /chats/{chatId}/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn()
+        && request.resource.size < 25 * 1024 * 1024  // 25MB
+        && (request.resource.contentType.matches('image/.*')
+            || request.resource.contentType.matches('video/.*')
+            || request.resource.contentType.matches('audio/.*')
+            || request.resource.contentType.matches('application/.*'));
+    }
+
+    // Status media — user owns their status folder
+    match /statuses/{userId}/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn()
+        && request.auth.uid == userId
+        && request.resource.size < 10 * 1024 * 1024  // 10MB
+        && (request.resource.contentType.matches('image/.*')
+            || request.resource.contentType.matches('video/.*'));
+    }
+  }
+}
