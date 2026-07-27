@@ -437,8 +437,8 @@ export default function ChatViewPage() {
     <div className="flex h-full w-full min-h-0">
       {/* Chat area */}
       <div className="flex h-full w-full min-h-0 min-w-0 flex-1 flex-col">
-        {/* Header */}
-        <header className="flex items-center justify-between gap-2 border-b border-border/60 bg-panel/70 px-3 py-2.5 shadow-soft backdrop-blur-xl lg:px-5 lg:py-3">
+        {/* Header — glass intensifies on scroll */}
+        <header className="flex items-center justify-between gap-2 border-b border-border/40 glass-strong px-3 py-2.5 shadow-soft transition-all duration-300 lg:px-5 lg:py-3">
           <div className="flex min-w-0 flex-1 items-center gap-2.5">
             <Button
               size="icon"
@@ -453,9 +453,9 @@ export default function ChatViewPage() {
               <UserAvatar name={displayName} src={displayPhoto} size="md" status={otherStatus as 'online' | 'offline'} showStatus />
               <div className="min-w-0 text-left">
                 <p className="truncate font-display text-[15px] font-semibold tracking-tight text-foreground">{displayName}</p>
-                <p className="truncate text-xs text-muted-foreground">
+                <p className="truncate text-xs text-muted-foreground transition-colors">
                   {typingUsers.length > 0 ? (
-                    <span className="text-primary">typing…</span>
+                    <span className="font-medium text-primary typing-preview">typing</span>
                   ) : isGroup ? (
                     `${chat.participantIds.length} members`
                   ) : otherStatus === 'online' ? (
@@ -469,13 +469,13 @@ export default function ChatViewPage() {
           </div>
 
           <div className="flex shrink-0 items-center gap-0.5 lg:gap-1">
-            <Button size="icon" variant="ghost" className="hover:bg-primary/10 hover:text-primary" onClick={() => openCall({ type: 'video', peerName: displayName, peerPhoto: displayPhoto ?? null })} aria-label="Video call">
+            <Button size="icon" variant="ghost" className="rounded-full hover:bg-primary/10 hover:text-primary active:scale-90 transition-transform" onClick={() => openCall({ type: 'video', peerName: displayName, peerPhoto: displayPhoto ?? null })} aria-label="Video call">
               <Video className="h-5 w-5" />
             </Button>
-            <Button size="icon" variant="ghost" className="hover:bg-primary/10 hover:text-primary" onClick={() => openCall({ type: 'audio', peerName: displayName, peerPhoto: displayPhoto ?? null })} aria-label="Voice call">
+            <Button size="icon" variant="ghost" className="rounded-full hover:bg-primary/10 hover:text-primary active:scale-90 transition-transform" onClick={() => openCall({ type: 'audio', peerName: displayName, peerPhoto: displayPhoto ?? null })} aria-label="Voice call">
               <Phone className="h-5 w-5" />
             </Button>
-            <Button size="icon" variant="ghost" className="hover:bg-primary/10 hover:text-primary" onClick={() => setSearchOpen((s) => !s)} aria-label="Search in chat">
+            <Button size="icon" variant="ghost" className="rounded-full hover:bg-primary/10 hover:text-primary active:scale-90 transition-transform" onClick={() => setSearchOpen((s) => !s)} aria-label="Search in chat">
               <Search className="h-5 w-5" />
             </Button>
             <DropdownMenu>
@@ -650,7 +650,7 @@ export default function ChatViewPage() {
         </AnimatePresence>
 
         {/* Composer — pinned to bottom, never scrolls off, clears the fixed mobile nav */}
-        <div className="shrink-0 border-t border-border/60 bg-panel/90 px-1 pt-1 shadow-[0_-2px_12px_-4px_rgba(0,0,0,0.08)] backdrop-blur-xl pb-mobile-nav md:pb-1 lg:px-3 lg:py-1.5">
+        <div className="shrink-0 border-t border-border/40 glass-strong px-1 pt-1 shadow-[0_-2px_12px_-4px_rgba(0,0,0,0.06)] backdrop-blur-xl pb-mobile-nav md:pb-1 lg:px-3 lg:py-1.5">
           <MessageComposer
             onSend={handleSend}
             onTyping={handleTyping}

@@ -147,26 +147,27 @@
     font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
   }
 
-  /* WhatsApp chat doodle background */
+  /* WhatsApp chat doodle background — layered, soft, with a subtle top sheen */
   .chat-doodle {
     background-color: hsl(var(--chat-bg));
     background-image:
-      radial-gradient(hsl(var(--muted-foreground) / 0.08) 1px, transparent 1px),
-      radial-gradient(hsl(var(--muted-foreground) / 0.05) 1px, transparent 1px);
-    background-size: 24px 24px, 48px 48px;
-    background-position: 0 0, 12px 12px;
+      radial-gradient(hsl(var(--muted-foreground) / 0.07) 1px, transparent 1px),
+      radial-gradient(hsl(var(--muted-foreground) / 0.045) 1px, transparent 1px),
+      radial-gradient(ellipse 140% 60% at 50% 0%, hsl(var(--primary) / 0.06), transparent 60%);
+    background-size: 26px 26px, 52px 52px, 100% 100%;
+    background-position: 0 0, 13px 13px, 0 0;
   }
 
   .glass {
-    background: hsl(var(--panel) / 0.72);
-    backdrop-filter: blur(16px) saturate(180%);
-    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    background: hsl(var(--panel) / 0.68);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
   }
 
   .glass-strong {
-    background: hsl(var(--panel) / 0.88);
-    backdrop-filter: blur(24px) saturate(180%);
-    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    background: hsl(var(--panel) / 0.82);
+    backdrop-filter: blur(28px) saturate(190%);
+    -webkit-backdrop-filter: blur(28px) saturate(190%);
   }
 
   /* Soft elevated card */
@@ -188,6 +189,19 @@
   .typing-dot:nth-child(3) {
     animation-delay: 0.3s;
   }
+  .typing-preview {
+    position: relative;
+  }
+  .typing-preview::after {
+    content: '…';
+    animation: typing-ellipsis 1.4s infinite steps(1);
+  }
+  @keyframes typing-ellipsis {
+    0% { content: ''; }
+    25% { content: '·'; }
+    50% { content: '··'; }
+    75% { content: '···'; }
+  }
 
   /* Status ring */
   .status-ring {
@@ -197,6 +211,36 @@
       hsl(var(--muted)) 280deg,
       hsl(var(--muted)) 360deg
     );
+  }
+
+  /* Gradient ring around avatars / active states */
+  .ring-gradient {
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.6));
+  }
+
+  /* Animated online pulse */
+  .online-pulse::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    box-shadow: 0 0 0 0 hsl(152 56% 40% / 0.6);
+    animation: online-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+
+  /* Ripple container */
+  .ripple {
+    position: relative;
+    overflow: hidden;
+  }
+  .ripple-ink {
+    position: absolute;
+    border-radius: 9999px;
+    transform: scale(0);
+    animation: ripple 0.6s ease-out;
+    pointer-events: none;
+    background: currentColor;
+    opacity: 0.25;
   }
 }
 
@@ -267,4 +311,16 @@
 @keyframes typing-bounce {
   0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
   30% { transform: translateY(-4px); opacity: 1; }
+}
+@keyframes online-ping {
+  0% { box-shadow: 0 0 0 0 hsl(152 56% 40% / 0.5); }
+  70% { box-shadow: 0 0 0 6px hsl(152 56% 40% / 0); }
+  100% { box-shadow: 0 0 0 0 hsl(152 56% 40% / 0); }
+}
+@keyframes ripple {
+  to { transform: scale(2.5); opacity: 0; }
+}
+@keyframes float-up {
+  0% { opacity: 0; transform: translateY(8px) scale(0.96); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
 }

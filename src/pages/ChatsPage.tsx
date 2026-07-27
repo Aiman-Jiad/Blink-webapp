@@ -123,21 +123,31 @@ export default function ChatsPage() {
 
           {/* Filter chips */}
           <div className="no-scrollbar flex gap-1.5 overflow-x-auto px-3 pb-2">
-            {FILTERS.map((f) => (
-              <button
-                key={f.key}
-                onClick={() => setFilter(f.key)}
-                className={cn(
-                  'flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
-                  filter === f.key
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-muted-foreground hover:text-foreground',
-                )}
-              >
-                <f.icon className="h-3.5 w-3.5" />
-                {f.label}
-              </button>
-            ))}
+            {FILTERS.map((f) => {
+              const count = f.key === 'unread'
+                ? chats.filter((c) => (c.unreadCount[meId] ?? 0) > 0).length
+                : undefined;
+              return (
+                <button
+                  key={f.key}
+                  onClick={() => setFilter(f.key)}
+                  className={cn(
+                    'flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium transition-all duration-200 active:scale-95',
+                    filter === f.key
+                      ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/70 hover:text-foreground',
+                  )}
+                >
+                  <f.icon className="h-3.5 w-3.5" />
+                  {f.label}
+                  {count !== undefined && count > 0 && (
+                    <span className="grid h-4 min-w-4 place-items-center rounded-full bg-primary-foreground/25 px-1 text-[10px] font-bold tabular-nums">
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
           {/* Chat list */}
@@ -182,6 +192,24 @@ export default function ChatsPage() {
       </div>
 
       <NewChatDialog open={newChatOpen} onOpenChange={setNewChatOpen} />
+
+      {/* Floating compose button — visible on mobile when no chat is open */}
+      <AnimatePresence>
+        {!hasActiveChat && (
+          <motion.button
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 22 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setNewChatOpen(true)}
+            className="fixed bottom-20 right-4 z-30 grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-soft-lg ring-1 ring-primary/20 md:hidden"
+            aria-label="New chat"
+          >
+            <MessageSquarePlus className="h-6 w-6" />
+          </motion.button>
+        )}
+      </AnimatePresence>
     </>
   );
 }

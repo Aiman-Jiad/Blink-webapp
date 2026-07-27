@@ -101,9 +101,9 @@ function MessageBubbleBase({
   const bubble = (
     <motion.div
       layout
-      initial={{ opacity: 0, y: 8, scale: 0.98 }}
+      initial={{ opacity: 0, y: 10, scale: 0.96 }}
       animate={{ opacity: 1, y: 0, scale: 1, x: dragX }}
-      transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
       className={cn('group relative flex max-w-[78%] flex-col transition-transform duration-150', isMine ? 'items-end' : 'items-start')}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
@@ -159,10 +159,10 @@ function MessageBubbleBase({
 
         <div
           className={cn(
-            'relative rounded-2xl px-3 py-2 shadow-soft transition-shadow duration-150 group-hover:shadow-soft-lg',
+            'relative rounded-[1.4rem] px-3.5 py-2 shadow-soft transition-all duration-200 group-hover:shadow-soft-lg',
             isMine ? 'bg-chat-bubble-me text-foreground' : 'bg-chat-bubble-them text-foreground',
             isMine ? 'rounded-br-md' : 'rounded-bl-md',
-            isMedia && 'overflow-hidden p-1',
+            isMedia && 'overflow-hidden p-1.5',
             selected && 'ring-2 ring-primary',
           )}
         >
@@ -177,10 +177,10 @@ function MessageBubbleBase({
           )}
 
           {/* Footer: time + ticks */}
-          <div className={cn('flex items-center justify-end gap-1', isMedia ? 'px-2 pb-1' : 'mt-0.5')}>
+          <div className={cn('flex items-center justify-end gap-1', isMedia ? 'px-2 pb-1.5' : 'mt-0.5')}>
             {message.starred && <Star className="h-3 w-3 text-amber-400" fill="currentColor" />}
             {message.pinned && <Pin className="h-3 w-3 text-muted-foreground" fill="currentColor" />}
-            <span className="text-[10px] text-muted-foreground">
+            <span className="text-[10px] tabular-nums text-muted-foreground/90">
               {formatMessageTime(message.createdAt)}
               {message.editedAt && ' · edited'}
             </span>
@@ -190,21 +190,26 @@ function MessageBubbleBase({
 
         {/* Reactions */}
         {hasReaction && (
-          <div className={cn('absolute -bottom-3 flex gap-0.5', isMine ? 'right-2' : 'left-2')}>
+          <motion.div
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+            className={cn('absolute -bottom-3 flex gap-0.5', isMine ? 'right-3' : 'left-3')}
+          >
             {message.reactions.slice(0, 3).map((r, i) => (
               <span
                 key={i}
-                className="grid h-5 w-5 place-items-center rounded-full bg-panel text-[11px] shadow-bubble ring-1 ring-border"
+                className="grid h-6 min-w-6 place-items-center rounded-full bg-panel px-1 text-[12px] shadow-bubble ring-1 ring-border/60 transition-transform hover:scale-110"
               >
                 {r.emoji}
               </span>
             ))}
             {message.reactions.length > 3 && (
-              <span className="grid h-5 place-items-center rounded-full bg-panel px-1 text-[10px] font-medium shadow-bubble ring-1 ring-border">
+              <span className="grid h-6 min-w-6 place-items-center rounded-full bg-panel px-1 text-[10px] font-semibold shadow-bubble ring-1 ring-border/60">
                 {message.reactions.length}
               </span>
             )}
-          </div>
+          </motion.div>
         )}
       </div>
 

@@ -74,9 +74,10 @@ export function UserAvatar({
       {showStatus && status && (
         <span
           className={cn(
-            'absolute bottom-0 right-0 rounded-full ring-background',
-            STATUS_DOT[size],
+            'absolute bottom-0 right-0 rounded-full ring-2 ring-background',
+            STATUS_DOT[size].replace('ring-2', ''),
             STATUS_COLOR[status],
+            status === 'online' && 'online-pulse',
           )}
         />
       )}

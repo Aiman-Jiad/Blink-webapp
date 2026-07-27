@@ -128,8 +128,10 @@ function ChatListItemBase({ chat, active }: ChatListItemProps) {
       transition={{ duration: 0.2 }}
       onClick={() => navigate(`/chats/${chat.id}`)}
       className={cn(
-        'group relative flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 transition-colors',
-        active ? 'bg-primary/10' : 'hover:bg-muted/60',
+        'group relative flex cursor-pointer items-center gap-3 rounded-2xl px-3 py-3 transition-all duration-200 active:scale-[0.99]',
+        active
+          ? 'bg-primary/10 shadow-soft ring-1 ring-primary/20'
+          : 'hover:bg-muted/60 hover:shadow-sm',
       )}
     >
       {/* Avatar */}
@@ -162,7 +164,7 @@ function ChatListItemBase({ chat, active }: ChatListItemProps) {
             </span>
             {muted && <VolumeX className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />}
           </div>
-          <span className={cn('shrink-0 text-[11px]', unread > 0 ? 'font-semibold text-primary' : 'text-muted-foreground')}>
+          <span className={cn('shrink-0 text-[11px] tabular-nums', unread > 0 ? 'font-semibold text-primary' : 'text-muted-foreground')}>
             {lastMsg ? formatChatTime(lastMsg.createdAt) : ''}
           </span>
         </div>
@@ -178,7 +180,7 @@ function ChatListItemBase({ chat, active }: ChatListItemProps) {
               </span>
             )}
             {chat.typingUsers.length > 0 && !chat.typingUsers.includes(meId) ? (
-              <span className="truncate text-primary">typing…</span>
+              <span className="truncate font-medium text-primary typing-preview">typing…</span>
             ) : (
               <span className="truncate text-muted-foreground">{lastMsgPreview}</span>
             )}
@@ -187,16 +189,27 @@ function ChatListItemBase({ chat, active }: ChatListItemProps) {
             {pinned && <Pin className="h-3.5 w-3.5 text-muted-foreground" fill="currentColor" />}
             {favourite && <Star className="h-3.5 w-3.5 text-amber-400" fill="currentColor" />}
             {unread > 0 && (
-              <span className="grid h-5 min-w-5 place-items-center rounded-full bg-primary px-1.5 text-[11px] font-bold text-primary-foreground">
+              <motion.span
+                initial={{ scale: 0.6 }}
+                animate={{ scale: 1 }}
+                className={cn(
+                  'grid h-5 min-w-5 place-items-center rounded-full px-1.5 text-[11px] font-bold tabular-nums',
+                  active
+                    ? 'bg-primary text-primary-foreground'
+                    : unread > 5
+                      ? 'bg-primary text-primary-foreground shadow-md shadow-primary/30'
+                      : 'bg-primary/90 text-primary-foreground',
+                )}
+              >
                 {unread > 99 ? '99+' : unread}
-              </span>
+              </motion.span>
             )}
           </div>
         </div>
       </div>
 
       {/* Hover actions */}
-      <div className="absolute right-2 top-1/2 hidden -translate-y-1/2 items-center gap-0.5 rounded-lg bg-panel/95 p-0.5 shadow-soft opacity-0 transition-opacity group-hover:opacity-100 md:flex">
+      <div className="absolute right-2 top-1/2 hidden -translate-y-1/2 items-center gap-0.5 rounded-xl bg-panel/95 p-1 shadow-soft ring-1 ring-border/50 opacity-0 backdrop-blur-md transition-all duration-200 group-hover:opacity-100 md:flex">
         <ActionBtn label={pinned ? 'Unpin' : 'Pin'} onClick={(e) => { e.stopPropagation(); togglePin(); }} active={pinned}>
           <Pin className="h-3.5 w-3.5" fill={pinned ? 'currentColor' : 'none'} />
         </ActionBtn>
