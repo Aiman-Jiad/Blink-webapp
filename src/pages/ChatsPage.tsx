@@ -77,10 +77,10 @@ export default function ChatsPage() {
 
   return (
     <>
-      <div className="flex h-full">
+      <div className="flex h-full w-full overflow-hidden">
         {/* Chat list panel — full width on mobile when no chat active, side panel on desktop */}
         <div className={cn(
-          'flex flex-col md:w-[340px] md:shrink-0 md:border-r md:border-border/60 lg:w-[380px]',
+          'flex min-w-0 flex-col md:w-[340px] md:shrink-0 md:border-r md:border-border/60 lg:w-[380px]',
           hasActiveChat ? 'hidden md:flex' : 'flex w-full md:w-[340px]',
         )}>
           <PageHeader
@@ -184,8 +184,8 @@ export default function ChatsPage() {
         {/* Chat view slot — hidden on mobile when no chat active, shown when chat is open.
             On mobile, reserve room for the fixed bottom nav so the composer stays visible. */}
         <div className={cn(
-          'min-h-0 flex-1 md:flex',
-          hasActiveChat ? 'flex' : 'hidden',
+          'min-h-0 min-w-0 flex-1 overflow-hidden md:flex',
+          hasActiveChat ? 'flex w-full' : 'hidden',
         )}>
           <Outlet />
         </div>
@@ -203,7 +203,8 @@ export default function ChatsPage() {
             transition={{ type: 'spring', stiffness: 400, damping: 22 }}
             whileTap={{ scale: 0.9 }}
             onClick={() => setNewChatOpen(true)}
-            className="fixed bottom-20 right-4 z-30 grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-soft-lg ring-1 ring-primary/20 md:hidden"
+            className="fixed right-4 z-30 grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-soft-lg ring-1 ring-primary/20 transition-[bottom] md:hidden"
+            style={{ bottom: 'calc(3.5rem + env(safe-area-inset-bottom) + 1rem)' }}
             aria-label="New chat"
           >
             <MessageSquarePlus className="h-6 w-6" />

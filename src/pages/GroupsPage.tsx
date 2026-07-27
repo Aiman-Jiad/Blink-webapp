@@ -69,7 +69,7 @@ export default function GroupsPage() {
                   className="card-soft flex w-full items-center gap-3 p-3 text-left transition-colors hover:bg-muted/50"
                 >
                   {group.photoURL ? (
-                    <img src={group.photoURL} alt={group.name} className="h-12 w-12 rounded-full object-cover" />
+                    <img src={group.photoURL} alt={group.name} loading="lazy" className="h-12 w-12 rounded-full object-cover" />
                   ) : (
                     <div className="grid h-12 w-12 place-items-center rounded-full bg-gradient-to-br from-primary/80 to-teal-700 text-white">
                       <Users className="h-5 w-5" />

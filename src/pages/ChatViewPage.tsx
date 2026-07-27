@@ -641,7 +641,8 @@ export default function ChatViewPage() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0, opacity: 0 }}
               onClick={() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })}
-              className="absolute bottom-20 right-4 z-10 grid h-9 w-9 place-items-center rounded-full bg-panel shadow-soft-lg"
+              className="absolute right-4 z-10 grid h-9 w-9 place-items-center rounded-full bg-panel shadow-soft-lg md:bottom-6"
+              style={{ bottom: 'calc(3.5rem + env(safe-area-inset-bottom) + 4.5rem)' }}
               aria-label="Scroll to bottom"
             >
               <ChevronDown className="h-5 w-5 text-muted-foreground" />
@@ -670,7 +671,8 @@ export default function ChatViewPage() {
             initial={{ y: 60, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 60, opacity: 0 }}
-            className="absolute bottom-20 left-1/2 z-30 flex -translate-x-1/2 items-center gap-1 rounded-full bg-panel px-2 py-1.5 shadow-soft-lg ring-1 ring-border"
+            className="absolute left-1/2 z-30 flex -translate-x-1/2 items-center gap-1 rounded-full bg-panel px-2 py-1.5 shadow-soft-lg ring-1 ring-border md:bottom-6"
+            style={{ bottom: 'calc(3.5rem + env(safe-area-inset-bottom) + 4.5rem)' }}
           >
             <span className="px-2 text-sm font-medium">{selectedIds.size} selected</span>
             <div className="h-4 w-px bg-border" />

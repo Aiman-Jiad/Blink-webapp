@@ -82,7 +82,7 @@ export function ForwardDialog({ open, onOpenChange, targets, onForward, messageC
                   )}
                 >
                   {target.photo ? (
-                    <img src={target.photo} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
+                    <img src={target.photo} alt="" loading="lazy" className="h-10 w-10 shrink-0 rounded-full object-cover" />
                   ) : (
                     <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/15 text-primary">
                       <Forward className="h-4 w-4" />

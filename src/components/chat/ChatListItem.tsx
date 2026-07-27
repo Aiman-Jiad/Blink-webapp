@@ -138,7 +138,7 @@ function ChatListItemBase({ chat, active }: ChatListItemProps) {
       {isGroup ? (
         <div className="relative">
           {photo ? (
-            <img src={photo} alt={displayName} className="h-12 w-12 rounded-full object-cover" />
+            <img src={photo} alt={displayName} loading="lazy" className="h-12 w-12 rounded-full object-cover" />
           ) : (
             <div className="grid h-12 w-12 place-items-center rounded-full bg-gradient-to-br from-primary/80 to-teal-700 text-white">
               <Users className="h-5 w-5" />

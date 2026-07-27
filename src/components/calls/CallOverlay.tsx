@@ -46,7 +46,8 @@ export function CallOverlay() {
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 100, opacity: 0 }}
-        className="fixed bottom-20 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-full bg-panel px-4 py-2.5 shadow-soft-lg md:bottom-6"
+        className="fixed left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-full bg-panel px-4 py-2.5 shadow-soft-lg md:bottom-6"
+        style={{ bottom: 'calc(3.5rem + env(safe-area-inset-bottom) + 0.5rem)' }}
       >
         <UserAvatar name={peerName} src={peerPhoto} size="sm" />
         <div className="text-sm">

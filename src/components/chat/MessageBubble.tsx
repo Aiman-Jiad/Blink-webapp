@@ -252,7 +252,7 @@ function MessageBubbleBase({
       {!isMine && isGroup && (
         <div className={cn('w-8 shrink-0', showAvatar && isLastInGroup)}>
           {showAvatar && isLastInGroup && senderName && (
-            <img src={senderPhoto ?? undefined} alt="" className="h-7 w-7 rounded-full object-cover" />
+            <img src={senderPhoto ?? undefined} alt="" loading="lazy" className="h-7 w-7 rounded-full object-cover" />
           )}
         </div>
       )}

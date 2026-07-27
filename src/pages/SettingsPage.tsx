@@ -47,8 +47,8 @@ export default function SettingsPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <header className="border-b border-border/60 bg-panel/80 px-4 py-3 backdrop-blur">
-        <h1 className="font-display text-lg font-bold">Settings</h1>
+      <header className="flex items-center justify-between border-b border-border/40 glass-strong px-4 py-3.5 shadow-soft lg:px-6 lg:py-4">
+        <h1 className="font-display text-lg font-bold tracking-tight">Settings</h1>
       </header>
 
       <div className="flex-1 overflow-y-auto p-4 lg:p-6 pb-mobile-nav md:pb-6">
