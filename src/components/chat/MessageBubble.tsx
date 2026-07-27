@@ -253,7 +253,7 @@ function MessageBubbleBase({
       )}
       <ContextMenu>
         <ContextMenuTrigger asChild>
-          <div className="min-w-0 flex-1">
+          <div className={cn('flex min-w-0 flex-1', isMine ? 'justify-end' : 'justify-start')}>
             {bubble}
           </div>
         </ContextMenuTrigger>
