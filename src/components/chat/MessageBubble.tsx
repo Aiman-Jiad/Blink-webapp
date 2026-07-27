@@ -1,8 +1,8 @@
-import { memo, useState, useRef, useEffect } from 'react';
+import { memo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
-  Reply, Forward, Copy, Pin, Star, Trash2, Smile, Download,
-  Play, FileText, MoreVertical, CornerUpLeft, Check, Pencil,
+  Reply, Forward, Copy, Pin, Star, Trash2, Smile,
+  MoreVertical, CornerUpLeft, Check, Pencil,
 } from 'lucide-react';
 import {
   ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger,
@@ -17,7 +17,8 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { MessageTicks } from '@/components/shared/MessageTicks';
 import { useMessageGesture } from '@/hooks/useMessageGesture';
-import { formatMessageTime, formatFileSize, formatDuration } from '@/utils';
+import { formatMessageTime } from '@/utils';
+import { MediaContent as SharedMediaContent } from './MediaContent';
 import { cn } from '@/lib/utils';
 import type { Message } from '@/types';
 
@@ -532,101 +533,7 @@ function SheetAction({ icon: Icon, label, onClick, destructive }: {
 function MediaContent({ message }: { message: Message }) {
   const attachment = message.attachments[0];
   if (!attachment) return null;
-
-  if (attachment.type === 'image') {
-    return (
-      <div className="relative overflow-hidden rounded-xl">
-        <img
-          src={attachment.url}
-          alt={attachment.name}
-          className="max-h-72 w-full object-cover"
-          loading="lazy"
-        />
-      </div>
-    );
-  }
-
-  if (attachment.type === 'video') {
-    return (
-      <div className="relative overflow-hidden rounded-xl bg-black">
-        <video src={attachment.url} className="max-h-72 w-full" controls preload="metadata" />
-      </div>
-    );
-  }
-
-  if (attachment.type === 'audio') {
-    return <AudioPlayer url={attachment.url} duration={attachment.duration} />;
-  }
-
-  // Document
-  return (
-    <a
-      href={attachment.url}
-      download={attachment.name}
-      className="flex items-center gap-3 rounded-xl bg-black/5 p-3 transition-colors hover:bg-black/10"
-    >
-      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary">
-        <FileText className="h-5 w-5" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">{attachment.name}</p>
-        <p className="text-xs text-muted-foreground">{formatFileSize(attachment.size)}</p>
-      </div>
-      <Download className="h-4 w-4 text-muted-foreground" />
-    </a>
-  );
-}
-
-function AudioPlayer({ url, duration }: { url: string; duration?: number }) {
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const [playing, setPlaying] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [elapsed, setElapsed] = useState(0);
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    const onTime = () => {
-      setProgress((audio.currentTime / (audio.duration || 1)) * 100);
-      setElapsed(audio.currentTime);
-    };
-    const onEnd = () => { setPlaying(false); setProgress(0); setElapsed(0); };
-    audio.addEventListener('timeupdate', onTime);
-    audio.addEventListener('ended', onEnd);
-    return () => {
-      audio.removeEventListener('timeupdate', onTime);
-      audio.removeEventListener('ended', onEnd);
-    };
-  }, []);
-
-  function toggle() {
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (playing) { audio.pause(); setPlaying(false); }
-    else { audio.play(); setPlaying(true); }
-  }
-
-  return (
-    <div className="flex items-center gap-2 rounded-xl bg-black/5 p-2.5">
-      <audio ref={audioRef} src={url} preload="metadata" />
-      <button
-        onClick={toggle}
-        className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground transition-transform hover:scale-105"
-        aria-label={playing ? 'Pause' : 'Play'}
-      >
-        {playing ? <span className="text-sm">❚❚</span> : <Play className="h-4 w-4" fill="currentColor" />}
-      </button>
-      <div className="flex-1">
-        <div className="h-1.5 overflow-hidden rounded-full bg-black/10">
-          <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${progress}%` }} />
-        </div>
-        <div className="mt-1 flex justify-between text-[10px] text-muted-foreground">
-          <span>{formatDuration(Math.floor(elapsed))}</span>
-          <span>{duration ? formatDuration(duration) : '0:00'}</span>
-        </div>
-      </div>
-    </div>
-  );
+  return <SharedMediaContent attachment={attachment} />;
 }
 
 export const MessageBubble = memo(MessageBubbleBase);

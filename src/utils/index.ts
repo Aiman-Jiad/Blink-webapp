@@ -5,14 +5,14 @@
 import { format, formatDistanceToNow, isToday, isYesterday, isThisWeek, isThisYear } from 'date-fns';
 import type { MessageStatus } from '@/types';
 
-/** Format a timestamp for message bubbles. */
+/** Format a timestamp for message bubbles — 12-hour with AM/PM. */
 export function formatMessageTime(ts: number): string {
-  return format(ts, 'HH:mm');
+  return format(ts, 'h:mm a');
 }
 
-/** Format a timestamp for chat list previews. */
+/** Format a timestamp for chat list previews — 12-hour with AM/PM. */
 export function formatChatTime(ts: number): string {
-  if (isToday(ts)) return format(ts, 'HH:mm');
+  if (isToday(ts)) return format(ts, 'h:mm a');
   if (isYesterday(ts)) return 'Yesterday';
   if (isThisWeek(ts)) return format(ts, 'EEE');
   if (isThisYear(ts)) return format(ts, 'd MMM');
