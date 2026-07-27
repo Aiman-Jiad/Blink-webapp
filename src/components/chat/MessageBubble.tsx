@@ -2,7 +2,7 @@ import { memo, useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   Reply, Forward, Copy, Pin, Star, Trash2, Smile, Download,
-  Play, FileText, MoreVertical, CornerUpLeft,
+  Play, FileText, MoreVertical, CornerUpLeft, Check, Pencil,
 } from 'lucide-react';
 import {
   ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger,
@@ -11,14 +11,21 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import {
+  Sheet, SheetContent, SheetHeader, SheetTitle,
+} from '@/components/ui/sheet';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { MessageTicks } from '@/components/shared/MessageTicks';
+import { useMessageGesture } from '@/hooks/useMessageGesture';
 import { formatMessageTime, formatFileSize, formatDuration } from '@/utils';
 import { cn } from '@/lib/utils';
 import type { Message } from '@/types';
 
 const QUICK_REACTIONS = ['❤️', '😂', '👍', '😮', '😢', '🔥'];
 const ALL_EMOJIS = ['❤️', '😂', '👍', '😮', '😢', '🔥', '🎉', '👏', '🙏', '💯', '✨', '🥰', '😍', '🤔', '😅', '👀', '🙌', '💪', '🚀', '✅'];
+
+// Edit window in ms — matches WhatsApp's 15-minute limit.
+const EDIT_WINDOW_MS = 15 * 60 * 1000;
 
 interface MessageBubbleProps {
   message: Message;
@@ -35,16 +42,31 @@ interface MessageBubbleProps {
   onTogglePin: (message: Message) => void;
   onToggleStar: (message: Message) => void;
   onReact: (message: Message, emoji: string) => void;
-  replyToMessage?: Message | null;
+  onEdit: (message: Message) => void;
+  onSelect?: (message: Message, selected: boolean) => void;
+  selected?: boolean;
+  selectionMode?: boolean;
+}
+
+function canEdit(message: Message, isMine: boolean, meId: string): boolean {
+  if (!isMine || message.type !== 'text') return false;
+  if (message.deletedForEveryone || message.deletedFor.includes(meId)) return false;
+  return Date.now() - message.createdAt <= EDIT_WINDOW_MS;
 }
 
 function MessageBubbleBase({
   message, isMine, isGroup, senderName, senderPhoto, showAvatar, isLastInGroup,
-  onReply, onForward, onDelete, onCopy, onTogglePin, onToggleStar, onReact,
-  replyToMessage,
+  onReply, onForward, onDelete, onCopy, onTogglePin, onToggleStar, onReact, onEdit,
+  onSelect, selected = false, selectionMode = false,
 }: MessageBubbleProps) {
   const [showActions, setShowActions] = useState(false);
+  const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
   const meId = 'me';
+
+  const { dragX, gestureHandlers } = useMessageGesture({
+    onSwipeRight: () => onReply(message),
+    onLongPress: () => setMobileSheetOpen(true),
+  });
 
   if (message.deletedForEveryone) {
     return (
@@ -64,22 +86,49 @@ function MessageBubbleBase({
 
   const hasReaction = message.reactions.length > 0;
   const isMedia = message.type !== 'text' && message.type !== 'system' && message.attachments.length > 0;
+  const editable = canEdit(message, isMine, meId);
 
   function handleCopy() { onCopy(message); }
+
+  function handleDoubleClick() {
+    onReact(message, '❤️');
+  }
+
+  function handleSelectClick() {
+    if (selectionMode && onSelect) onSelect(message, !selected);
+  }
 
   const bubble = (
     <motion.div
       layout
       initial={{ opacity: 0, y: 8, scale: 0.98 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
+      animate={{ opacity: 1, y: 0, scale: 1, x: dragX }}
       transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
       className={cn('group relative flex max-w-[78%] flex-col transition-transform duration-150', isMine ? 'items-end' : 'items-start')}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
+      onDoubleClick={handleDoubleClick}
+      onClick={handleSelectClick}
+      {...gestureHandlers}
     >
+      {/* Swipe-to-reply affordance — revealed as the bubble is dragged right */}
+      <AnimateSwipeHint dragX={dragX} isMine={isMine} />
+
       {/* Sender name for groups */}
       {isGroup && !isMine && isLastInGroup && senderName && (
         <span className="mb-0.5 ml-1 text-xs font-semibold text-primary">{senderName}</span>
+      )}
+
+      {/* Multi-select checkbox */}
+      {selectionMode && (
+        <div className={cn('mb-1 flex items-center gap-1.5', isMine ? 'flex-row-reverse' : 'flex-row')}>
+          <div className={cn(
+            'grid h-5 w-5 place-items-center rounded-full border-2 transition-colors',
+            selected ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground/40',
+          )}>
+            {selected && <Check className="h-3 w-3" />}
+          </div>
+        </div>
       )}
 
       <div className={cn('relative', isMine ? 'order-2' : 'order-2')}>
@@ -87,12 +136,12 @@ function MessageBubbleBase({
         {message.replyTo && (
           <div className={cn(
             'mb-1 flex items-center gap-2 rounded-lg border-l-2 px-2.5 py-1.5 text-xs',
-            isMine ? 'bg-black/5 border-primary' : 'bg-black/5 border-primary',
+            'bg-black/5 border-primary',
           )}>
             <CornerUpLeft className="h-3 w-3 shrink-0 text-muted-foreground" />
             <div className="min-w-0">
               <p className="font-semibold text-primary">
-                {message.replyTo.senderId === meId ? 'You' : (replyToMessage?.senderId === meId ? 'You' : 'Them')}
+                {message.replyTo.senderId === meId ? 'You' : USER_LABELS[message.replyTo.senderId] ?? 'Them'}
               </p>
               <p className="truncate text-muted-foreground">
                 {message.replyTo.text || `${message.replyTo.type}`}
@@ -114,6 +163,7 @@ function MessageBubbleBase({
             isMine ? 'bg-chat-bubble-me text-foreground' : 'bg-chat-bubble-them text-foreground',
             isMine ? 'rounded-br-md' : 'rounded-bl-md',
             isMedia && 'overflow-hidden p-1',
+            selected && 'ring-2 ring-primary',
           )}
         >
           {/* Media content */}
@@ -158,33 +208,37 @@ function MessageBubbleBase({
         )}
       </div>
 
-      {/* Hover actions (desktop) */}
-      <div
-        className={cn(
-          'absolute top-0 flex items-center gap-0.5 rounded-lg bg-panel/95 p-0.5 shadow-soft transition-opacity',
-          isMine ? 'left-0 -translate-x-full' : 'right-0 translate-x-full',
-          showActions ? 'opacity-100' : 'opacity-0 pointer-events-none',
-        )}
-      >
-        <BubbleAction label="React" onClick={() => {}}>
-          <ReactionPicker onPick={(e) => onReact(message, e)} />
-        </BubbleAction>
-        <BubbleAction label="Reply" onClick={() => onReply(message)}>
-          <Reply className="h-3.5 w-3.5" />
-        </BubbleAction>
-        <BubbleAction label="More" onClick={() => {}}>
-          <MessageMenu
-            message={message}
-            isMine={isMine}
-            onReply={() => onReply(message)}
-            onForward={() => onForward(message)}
-            onCopy={handleCopy}
-            onTogglePin={() => onTogglePin(message)}
-            onToggleStar={() => onToggleStar(message)}
-            onDelete={(forEveryone) => onDelete(message, forEveryone)}
-          />
-        </BubbleAction>
-      </div>
+      {/* Hover actions (desktop) — hidden in selection mode */}
+      {!selectionMode && (
+        <div
+          className={cn(
+            'absolute top-0 hidden items-center gap-0.5 rounded-lg bg-panel/95 p-0.5 shadow-soft transition-opacity md:flex',
+            isMine ? 'left-0 -translate-x-full' : 'right-0 translate-x-full',
+            showActions ? 'opacity-100' : 'opacity-0 pointer-events-none',
+          )}
+        >
+          <BubbleAction label="React" onClick={() => {}}>
+            <ReactionPicker onPick={(e) => onReact(message, e)} />
+          </BubbleAction>
+          <BubbleAction label="Reply" onClick={() => onReply(message)}>
+            <Reply className="h-3.5 w-3.5" />
+          </BubbleAction>
+          <BubbleAction label="More" onClick={() => {}}>
+            <MessageMenu
+              message={message}
+              isMine={isMine}
+              editable={editable}
+              onReply={() => onReply(message)}
+              onForward={() => onForward(message)}
+              onCopy={handleCopy}
+              onTogglePin={() => onTogglePin(message)}
+              onToggleStar={() => onToggleStar(message)}
+              onEdit={() => onEdit(message)}
+              onDelete={(forEveryone) => onDelete(message, forEveryone)}
+            />
+          </BubbleAction>
+        </div>
+      )}
     </motion.div>
   );
 
@@ -200,7 +254,7 @@ function MessageBubbleBase({
       <ContextMenu>
         <ContextMenuTrigger asChild>
           <div className="min-w-0 flex-1">
-            <ContextMenuWrapper>{bubble}</ContextMenuWrapper>
+            {bubble}
           </div>
         </ContextMenuTrigger>
         <ContextMenuContent>
@@ -217,6 +271,11 @@ function MessageBubbleBase({
           <ContextMenuItem onClick={handleCopy}>
             <Copy className="mr-2 h-4 w-4" /> Copy
           </ContextMenuItem>
+          {editable && (
+            <ContextMenuItem onClick={() => onEdit(message)}>
+              <Pencil className="mr-2 h-4 w-4" /> Edit
+            </ContextMenuItem>
+          )}
           <ContextMenuItem onClick={() => onTogglePin(message)}>
             <Pin className="mr-2 h-4 w-4" /> {message.pinned ? 'Unpin' : 'Pin'}
           </ContextMenuItem>
@@ -234,12 +293,49 @@ function MessageBubbleBase({
           )}
         </ContextMenuContent>
       </ContextMenu>
+
+      {/* Long-press action sheet (mobile) */}
+      <MobileActionSheet
+        open={mobileSheetOpen}
+        onOpenChange={setMobileSheetOpen}
+        message={message}
+        isMine={isMine}
+        editable={editable}
+        onReply={() => { onReply(message); setMobileSheetOpen(false); }}
+        onForward={() => { onForward(message); setMobileSheetOpen(false); }}
+        onCopy={() => { handleCopy(); setMobileSheetOpen(false); }}
+        onEdit={() => { onEdit(message); setMobileSheetOpen(false); }}
+        onTogglePin={() => { onTogglePin(message); setMobileSheetOpen(false); }}
+        onToggleStar={() => { onToggleStar(message); setMobileSheetOpen(false); }}
+        onReact={(e) => { onReact(message, e); setMobileSheetOpen(false); }}
+        onDelete={(forEveryone) => { onDelete(message, forEveryone); setMobileSheetOpen(false); }}
+      />
     </div>
   );
 }
 
-function ContextMenuWrapper({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+const USER_LABELS: Record<string, string> = {
+  me: 'You',
+  u_alice: 'Alice', u_marcus: 'Marcus', u_sofia: 'Sofia',
+  u_kenji: 'Kenji', u_priya: 'Priya',
+};
+
+function AnimateSwipeHint({ dragX, isMine }: { dragX: number; isMine: boolean }) {
+  if (dragX <= 2) return null;
+  const opacity = Math.min(dragX / 40, 1);
+  return (
+    <div
+      className="pointer-events-none absolute top-1/2 -translate-y-1/2 text-primary"
+      style={{
+        [isMine ? 'right' : 'left']: 'calc(100% + 6px)',
+        opacity,
+      } as React.CSSProperties}
+    >
+      <div className="grid h-7 w-7 place-items-center rounded-full bg-primary/15">
+        <Reply className="h-3.5 w-3.5" />
+      </div>
+    </div>
+  );
 }
 
 function BubbleAction({ children, label, onClick }: { children: React.ReactNode; label: string; onClick: () => void }) {
@@ -301,15 +397,17 @@ function ReactionPicker({ onPick }: { onPick: (emoji: string) => void }) {
 }
 
 function MessageMenu({
-  message, isMine, onReply, onForward, onCopy, onTogglePin, onToggleStar, onDelete,
+  message, isMine, editable, onReply, onForward, onCopy, onTogglePin, onToggleStar, onEdit, onDelete,
 }: {
   message: Message;
   isMine: boolean;
+  editable: boolean;
   onReply: () => void;
   onForward: () => void;
   onCopy: () => void;
   onTogglePin: () => void;
   onToggleStar: () => void;
+  onEdit: () => void;
   onDelete: (forEveryone: boolean) => void;
 }) {
   return (
@@ -329,6 +427,11 @@ function MessageMenu({
         <DropdownMenuItem onClick={onCopy}>
           <Copy className="mr-2 h-4 w-4" /> Copy
         </DropdownMenuItem>
+        {editable && (
+          <DropdownMenuItem onClick={onEdit}>
+            <Pencil className="mr-2 h-4 w-4" /> Edit
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem onClick={onTogglePin}>
           <Pin className="mr-2 h-4 w-4" /> {message.pinned ? 'Unpin' : 'Pin'}
         </DropdownMenuItem>
@@ -346,6 +449,78 @@ function MessageMenu({
         )}
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+function MobileActionSheet({
+  open, onOpenChange, message, isMine, editable,
+  onReply, onForward, onCopy, onEdit, onTogglePin, onToggleStar, onReact, onDelete,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  message: Message;
+  isMine: boolean;
+  editable: boolean;
+  onReply: () => void;
+  onForward: () => void;
+  onCopy: () => void;
+  onEdit: () => void;
+  onTogglePin: () => void;
+  onToggleStar: () => void;
+  onReact: (emoji: string) => void;
+  onDelete: (forEveryone: boolean) => void;
+}) {
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="bottom" className="rounded-t-2xl p-3 sm:max-w-md sm:mx-auto sm:left-1/2 sm:translate-x-[-50%] sm:right-auto sm:w-full sm:bottom-0 sm:rounded-t-2xl">
+        <SheetHeader className="mb-2">
+          <SheetTitle className="text-center text-sm font-medium text-muted-foreground">Message actions</SheetTitle>
+        </SheetHeader>
+        {/* Quick reactions row */}
+        <div className="mb-3 flex justify-center gap-1.5">
+          {QUICK_REACTIONS.map((emoji) => (
+            <button
+              key={emoji}
+              onClick={() => onReact(emoji)}
+              className="grid h-10 w-10 place-items-center rounded-full text-2xl transition-transform active:scale-90"
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+        <div className="space-y-0.5">
+          <SheetAction icon={Reply} label="Reply" onClick={onReply} />
+          <SheetAction icon={Forward} label="Forward" onClick={onForward} />
+          <SheetAction icon={Copy} label="Copy" onClick={onCopy} />
+          {editable && <SheetAction icon={Pencil} label="Edit" onClick={onEdit} />}
+          <SheetAction icon={Pin} label={message.pinned ? 'Unpin' : 'Pin'} onClick={onTogglePin} />
+          <SheetAction icon={Star} label={message.starred ? 'Unstar' : 'Star'} onClick={onToggleStar} />
+          <div className="my-1 h-px bg-border" />
+          <SheetAction icon={Trash2} label="Delete for me" onClick={() => onDelete(false)} destructive />
+          {isMine && <SheetAction icon={Trash2} label="Delete for everyone" onClick={() => onDelete(true)} destructive />}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function SheetAction({ icon: Icon, label, onClick, destructive }: {
+  icon: typeof Reply;
+  label: string;
+  onClick: () => void;
+  destructive?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-muted',
+        destructive && 'text-destructive',
+      )}
+    >
+      <Icon className="h-4 w-4" />
+      {label}
+    </button>
   );
 }
 

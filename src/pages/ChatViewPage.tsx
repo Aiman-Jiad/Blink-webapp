@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Phone, Video, Search, MoreVertical, X,
   Trash2, ChevronDown, ChevronUp, Info, Bell, BellOff,
+  Pin, Forward, CheckSquare, XCircle,
 } from 'lucide-react';
 import { MessageBubble } from '@/components/chat/MessageBubble';
 import { MessageComposer } from '@/components/chat/MessageComposer';
@@ -12,6 +13,7 @@ import { EmptyState } from '@/components/shared/EmptyState';
 import { TypingIndicator } from '@/components/shared/TypingIndicator';
 import { UserAvatar } from '@/components/shared/UserAvatar';
 import { ChatInfoPanel } from '@/components/chat/ChatInfoPanel';
+import { ForwardDialog, type ForwardTarget } from '@/components/chat/ForwardDialog';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
@@ -69,7 +71,12 @@ export default function ChatViewPage() {
   const [searchIndex, setSearchIndex] = useState(0);
   const [infoOpen, setInfoOpen] = useState(false);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
+  const [editing, setEditing] = useState<Message | null>(null);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [forwardOpen, setForwardOpen] = useState(false);
+  const [forwardPayload, setForwardPayload] = useState<Message[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const meId = me?.id ?? 'me';
 
@@ -187,6 +194,10 @@ export default function ChatViewPage() {
 
   const chatMessages = useMemo(() => messages[chatId ?? ''] ?? [], [messages, chatId]);
   const grouped = useMemo(() => groupByDate(chatMessages), [chatMessages]);
+  const pinnedMessages = useMemo(
+    () => chatMessages.filter((m) => m.pinned && !m.deletedForEveryone && !m.deletedFor.includes(meId)),
+    [chatMessages, meId],
+  );
 
   const otherId = chat?.participantIds.find((id) => id !== meId) ?? '';
   const isGroup = chat?.type === 'group';
@@ -196,6 +207,14 @@ export default function ChatViewPage() {
 
   function handleSend(text: string, attachments?: Message['attachments']) {
     if (!chatId) return;
+    // Editing an existing message in place
+    if (editing) {
+      const updated = { ...editing, text, editedAt: Date.now() };
+      updateMessage(updated);
+      dataService.messages.update(updated);
+      setEditing(null);
+      return;
+    }
     const msg: Message = {
       id: nanoid(),
       chatId,
@@ -283,27 +302,99 @@ export default function ChatViewPage() {
   }
 
   async function handleForward(message: Message) {
-    // Forward to the most recent other direct chat (simplified)
-    const targets = chats.filter((c) => c.id !== chatId && c.type === 'direct').slice(0, 1);
+    const targets = buildForwardTargets();
     if (targets.length === 0) {
       toast.error('No other chats to forward to');
       return;
     }
-    const target = targets[0];
-    const fwd: Message = {
-      ...message,
-      id: nanoid(),
-      chatId: target.id,
-      senderId: meId,
-      forwardedFrom: { id: message.id, name: USER_NAMES[message.senderId] ?? 'Someone' },
-      replyTo: null,
-      reactions: [],
-      status: 'sent',
-      createdAt: Date.now(),
-      readBy: [meId],
-    };
-    dataService.messages.add(fwd);
-    toast.success(`Forwarded to ${USER_NAMES[target.participantIds.find(id => id !== meId) ?? ''] ?? 'chat'}`);
+    setForwardPayload([message]);
+    setForwardOpen(true);
+  }
+
+  function buildForwardTargets(): ForwardTarget[] {
+    return chats
+      .filter((c) => c.id !== chatId && c.participantIds.includes(meId))
+      .map((c) => {
+        const otherId = c.participantIds.find((id) => id !== meId) ?? '';
+        return {
+          id: c.id,
+          label: c.type === 'group' ? (c.name ?? 'Group') : (USER_NAMES[otherId] ?? 'Chat'),
+          photo: c.type === 'group' ? c.photoURL : USER_PHOTOS[otherId],
+          subtitle: c.lastMessage?.text,
+        };
+      });
+  }
+
+  function doForward(targetId: string) {
+    const target = chats.find((c) => c.id === targetId);
+    if (!target) return;
+    forwardPayload.forEach((m) => {
+      const fwd: Message = {
+        ...m,
+        id: nanoid(),
+        chatId: targetId,
+        senderId: meId,
+        forwardedFrom: { id: m.id, name: USER_NAMES[m.senderId] ?? 'Someone' },
+        replyTo: null,
+        reactions: [],
+        status: 'sent',
+        createdAt: Date.now(),
+        readBy: [meId],
+      };
+      dataService.messages.add(fwd);
+    });
+    const targetName = target.type === 'group' ? target.name : USER_NAMES[target.participantIds.find(id => id !== meId) ?? ''];
+    toast.success(`Forwarded to ${targetName ?? 'chat'}`);
+    setForwardOpen(false);
+    setForwardPayload([]);
+  }
+
+  function handleEdit(message: Message) {
+    setEditing(message);
+    setReplyTo(null);
+  }
+
+  function handleSelect(message: Message, sel: boolean) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (sel) next.add(message.id); else next.delete(message.id);
+      return next;
+    });
+  }
+
+  function enterSelectionMode(seed?: Message) {
+    setSelectionMode(true);
+    if (seed) setSelectedIds(new Set([seed.id]));
+  }
+
+  function exitSelectionMode() {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  }
+
+  function bulkDelete(forEveryone: boolean) {
+    const list = chatMessages.filter((m) => selectedIds.has(m.id));
+    list.forEach((m) => {
+      const updated = forEveryone
+        ? { ...m, deletedForEveryone: true }
+        : { ...m, deletedFor: [...m.deletedFor, meId] };
+      updateMessage(updated);
+      dataService.messages.update(updated);
+    });
+    toast.success(`Deleted ${list.length} message${list.length > 1 ? 's' : ''}`);
+    exitSelectionMode();
+  }
+
+  function bulkForward() {
+    const list = chatMessages.filter((m) => selectedIds.has(m.id));
+    if (list.length === 0) return;
+    if (buildForwardTargets().length === 0) {
+      toast.error('No other chats to forward to');
+      return;
+    }
+    setForwardPayload(list);
+    setForwardOpen(true);
+    exitSelectionMode();
   }
 
   function handleSearchInChat(q: string) {
@@ -403,6 +494,9 @@ export default function ChatViewPage() {
                   {chat.mutedBy.includes(meId) ? <Bell className="mr-2 h-4 w-4" /> : <BellOff className="mr-2 h-4 w-4" />}
                   {chat.mutedBy.includes(meId) ? 'Unmute' : 'Mute'}
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => enterSelectionMode()}>
+                  <CheckSquare className="mr-2 h-4 w-4" /> Select messages
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem className="text-destructive" onClick={deleteChat}>
                   <Trash2 className="mr-2 h-4 w-4" /> Delete chat
@@ -451,6 +545,24 @@ export default function ChatViewPage() {
           )}
         </AnimatePresence>
 
+        {/* Pinned messages banner */}
+        {pinnedMessages.length > 0 && !selectionMode && (
+          <div className="flex items-center gap-2 border-b border-border/60 bg-primary/5 px-3 py-1.5">
+            <Pin className="h-3.5 w-3.5 shrink-0 text-primary" fill="currentColor" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs text-muted-foreground">
+                {pinnedMessages[0].text || `${pinnedMessages[0].type}`}
+              </p>
+            </div>
+            <button
+              onClick={() => scrollToMessage(pinnedMessages[0].id)}
+              className="text-xs font-medium text-primary hover:underline"
+            >
+              Jump
+            </button>
+          </div>
+        )}
+
         {/* Messages */}
         <div
           ref={scrollRef}
@@ -498,6 +610,10 @@ export default function ChatViewPage() {
                         onTogglePin={handleTogglePin}
                         onToggleStar={handleToggleStar}
                         onReact={handleReact}
+                        onEdit={handleEdit}
+                        onSelect={handleSelect}
+                        selected={selectedIds.has(msg.id)}
+                        selectionMode={selectionMode}
                       />
                     </div>
                   );
@@ -540,10 +656,45 @@ export default function ChatViewPage() {
             onTyping={handleTyping}
             replyTo={replyTo}
             onCancelReply={() => setReplyTo(null)}
+            editing={editing}
+            onCancelEdit={() => setEditing(null)}
             onSendVoice={(att) => handleSend('', [att])}
           />
         </div>
       </div>
+
+      {/* Multi-select action bar (desktop inline, mobile bottom sheet style) */}
+      <AnimatePresence>
+        {selectionMode && (
+          <motion.div
+            initial={{ y: 60, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 60, opacity: 0 }}
+            className="absolute bottom-20 left-1/2 z-30 flex -translate-x-1/2 items-center gap-1 rounded-full bg-panel px-2 py-1.5 shadow-soft-lg ring-1 ring-border"
+          >
+            <span className="px-2 text-sm font-medium">{selectedIds.size} selected</span>
+            <div className="h-4 w-px bg-border" />
+            <Button size="sm" variant="ghost" onClick={bulkForward} disabled={selectedIds.size === 0}>
+              <Forward className="mr-1 h-4 w-4" /> Forward
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => bulkDelete(false)} disabled={selectedIds.size === 0} className="text-destructive">
+              <Trash2 className="mr-1 h-4 w-4" /> Delete
+            </Button>
+            <Button size="sm" variant="ghost" onClick={exitSelectionMode} aria-label="Exit selection">
+              <XCircle className="h-4 w-4" />
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Forward dialog */}
+      <ForwardDialog
+        open={forwardOpen}
+        onOpenChange={(open) => { setForwardOpen(open); if (!open) setForwardPayload([]); }}
+        targets={buildForwardTargets()}
+        onForward={doForward}
+        messageCount={forwardPayload.length}
+      />
 
       {/* Info panel */}
       <AnimatePresence>

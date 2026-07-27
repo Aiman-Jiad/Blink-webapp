@@ -1,9 +1,9 @@
-import { useState, useRef, useCallback, type DragEvent } from 'react';
+import { useState, useRef, useCallback, useEffect, type DragEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import EmojiPicker from 'emoji-picker-react';
 import {
   Smile, Paperclip, Send, Mic, X, Image as ImageIcon, FileText, Video,
-  Camera, CornerUpLeft, Loader2, Trash2,
+  Camera, CornerUpLeft, Loader2, Trash2, Pencil,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -19,10 +19,12 @@ interface MessageComposerProps {
   replyTo: Message | null;
   onCancelReply: () => void;
   onSendVoice: (attachment: Attachment) => void;
+  editing: Message | null;
+  onCancelEdit: () => void;
 }
 
 export function MessageComposer({
-  onSend, onTyping, replyTo, onCancelReply, onSendVoice,
+  onSend, onTyping, replyTo, onCancelReply, onSendVoice, editing, onCancelEdit,
 }: MessageComposerProps) {
   const [text, setText] = useState('');
   const [emojiOpen, setEmojiOpen] = useState(false);
@@ -41,6 +43,17 @@ export function MessageComposer({
 
   const emojiTheme: 'dark' | 'light' = theme === 'dark' ? 'dark' : 'light';
 
+  // When entering edit mode, prefill the textarea with the message text.
+  useEffect(() => {
+    if (editing) {
+      setText(editing.text);
+      setTimeout(() => {
+        textareaRef.current?.focus();
+        textareaRef.current?.select();
+      }, 0);
+    }
+  }, [editing]);
+
   function handleTextChange(value: string) {
     setText(value);
     onTyping(value.length > 0);
@@ -58,6 +71,7 @@ export function MessageComposer({
     onSend(trimmed);
     setText('');
     onTyping(false);
+    if (editing) onCancelEdit();
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
     setTimeout(() => setSending(false), 200);
   }
@@ -190,6 +204,27 @@ export function MessageComposer({
               </p>
             </div>
             <button onClick={onCancelReply} className="rounded-md p-1 text-muted-foreground hover:text-foreground">
+              <X className="h-4 w-4" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Edit preview */}
+      <AnimatePresence>
+        {editing && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mb-1 flex items-center gap-2 rounded-t-xl border-l-4 border-amber-500 bg-amber-500/10 px-3 py-2"
+          >
+            <Pencil className="h-4 w-4 shrink-0 text-amber-600" />
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold text-amber-600">Editing message</p>
+              <p className="truncate text-xs text-muted-foreground">{editing.text}</p>
+            </div>
+            <button onClick={onCancelEdit} className="rounded-md p-1 text-muted-foreground hover:text-foreground">
               <X className="h-4 w-4" />
             </button>
           </motion.div>
