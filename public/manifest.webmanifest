@@ -1,0 +1,17 @@
+{
+  "name": "Blink — Real-time Messenger",
+  "short_name": "Blink",
+  "description": "A premium real-time messenger. Fast, secure, beautifully designed.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#0b141a",
+  "background_color": "#0b141a",
+  "categories": ["social", "communication"],
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

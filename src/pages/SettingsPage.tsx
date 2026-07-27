@@ -2,12 +2,13 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
   Sun, Moon, Monitor, Bell, Shield, Palette, User, LogOut,
-  ChevronRight, Volume2, Check, Eye, Trash2, Type,
+  ChevronRight, Volume2, Check, Eye, Trash2, Type, Download, CheckCircle2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useAuthStore } from '@/store/authStore';
 import { authService } from '@/services/authService';
+import { usePWAInstall } from '@/hooks/usePWAInstall';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
@@ -25,6 +26,12 @@ export default function SettingsPage() {
   const settings = useSettingsStore();
   const user = useAuthStore((s) => s.user);
   const [resetOpen, setResetOpen] = useState(false);
+  const { canInstall, installed, promptInstall } = usePWAInstall();
+
+  async function handleInstall() {
+    const ok = await promptInstall();
+    if (ok) toast.success('Blink installed');
+  }
 
   async function handleLogout() {
     await authService.signOut();
@@ -140,6 +147,34 @@ export default function SettingsPage() {
             <SettingRow icon={Check} label="Media auto-download" description="Automatically download photos and videos">
               <Switch checked={settings.mediaAutoDownload} onCheckedChange={(v) => settings.set('mediaAutoDownload', v)} />
             </SettingRow>
+          </Section>
+
+          {/* App — PWA install */}
+          <Section icon={Download} title="App" description="Install Blink as an app on your device.">
+            {installed ? (
+              <div className="flex items-center gap-3 p-4 text-sm text-muted-foreground">
+                <CheckCircle2 className="h-5 w-5 text-primary" />
+                Blink is installed and can run offline.
+              </div>
+            ) : canInstall ? (
+              <button
+                onClick={handleInstall}
+                className="flex w-full items-center gap-3 p-4 text-left transition-colors hover:bg-muted/50"
+              >
+                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+                  <Download className="h-4 w-4" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium">Install app</p>
+                  <p className="text-sm text-muted-foreground">Add Blink to your home screen for offline access</p>
+                </div>
+                <ChevronRight className="h-5 w-5 text-muted-foreground" />
+              </button>
+            ) : (
+              <div className="p-4 text-sm text-muted-foreground">
+                Use your browser's “Install app” or “Add to Home Screen” option to install Blink.
+              </div>
+            )}
           </Section>
 
           {/* Account */}

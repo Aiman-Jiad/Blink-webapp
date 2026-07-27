@@ -20,3 +20,14 @@ createRoot(document.getElementById('root')!).render(
 
 // Remove splash immediately after the first render commit.
 requestAnimationFrame(removeSplash);
+
+// Register the service worker for offline PWA support (production only,
+// so HMR in dev isn't disrupted by a stale cache).
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    const swUrl = `${import.meta.env.BASE_URL}sw.js`;
+    navigator.serviceWorker.register(swUrl).catch(() => {
+      // Registration failures are non-fatal — the app still works online.
+    });
+  });
+}
