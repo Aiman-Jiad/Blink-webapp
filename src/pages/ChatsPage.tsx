@@ -77,9 +77,12 @@ export default function ChatsPage() {
 
   return (
     <>
-      {/* Mobile: show chat list OR chat view, not both */}
-      <div className={cn('flex h-full', hasActiveChat ? 'hidden md:flex' : 'flex')}>
-        <div className="flex w-full flex-col md:w-[340px] md:shrink-0 md:border-r md:border-border/60 lg:w-[380px]">
+      <div className="flex h-full">
+        {/* Chat list panel — full width on mobile when no chat active, side panel on desktop */}
+        <div className={cn(
+          'flex flex-col md:w-[340px] md:shrink-0 md:border-r md:border-border/60 lg:w-[380px]',
+          hasActiveChat ? 'hidden md:flex' : 'flex w-full md:w-[340px]',
+        )}>
           <PageHeader
             title="Chats"
             subtitle={`${chats.length} conversations`}
@@ -168,8 +171,8 @@ export default function ChatsPage() {
           </div>
         </div>
 
-        {/* Chat view slot — desktop only (mobile uses ChatViewPage fullscreen) */}
-        <div className="hidden flex-1 md:block">
+        {/* Chat view slot — hidden on mobile when no chat active, shown when chat is open */}
+        <div className={cn('flex-1', hasActiveChat ? 'flex' : 'hidden md:flex')}>
           <Outlet />
         </div>
       </div>

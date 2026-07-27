@@ -60,7 +60,7 @@ export default function ChatViewPage() {
   const { chatId } = useParams();
   const navigate = useNavigate();
   const me = useAuthStore((s) => s.user);
-  const { chats, messages, setMessages, addMessage, updateMessage, updateChat, setActiveChat } = useChatStore();
+  const { chats, messages, setMessages, addMessage, updateMessage, updateChat, setActiveChat, loading: chatsLoading } = useChatStore();
   const { openCall, setMobileView } = useUIStore();
   const [loading, setLoading] = useState(true);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -92,6 +92,27 @@ export default function ChatViewPage() {
     });
     return () => setActiveChat(null);
   }, [chatId]);
+
+  // If there is a chatId but the chat isn't found AND chats are still loading,
+  // show a loading state instead of "Select a chat".
+  if (!chat) {
+    if (chatId && chatsLoading) {
+      return (
+        <div className="flex h-full items-center justify-center">
+          <MessageSkeleton />
+        </div>
+      );
+    }
+    return (
+      <div className="flex h-full items-center justify-center">
+        <EmptyState
+          icon={Info}
+          title="Select a chat"
+          description="Choose a conversation from the list to start messaging."
+        />
+      </div>
+    );
+  }
 
   // Simulated delivered -> read progression + transient typing indicator
   // + auto-reply for demo realism. The typing indicator only appears
@@ -317,18 +338,6 @@ export default function ChatViewPage() {
     dataService.chats.remove(chatId);
     toast.success('Chat deleted');
     navigate('/chats');
-  }
-
-  if (!chat) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <EmptyState
-          icon={Info}
-          title="Select a chat"
-          description="Choose a conversation from the list to start messaging."
-        />
-      </div>
-    );
   }
 
   const typingUsers = chat.typingUsers.filter((id) => id !== meId);

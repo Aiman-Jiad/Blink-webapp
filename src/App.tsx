@@ -8,6 +8,7 @@ import { ProtectedRoute, PublicOnlyRoute } from '@/components/auth/ProtectedRout
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { AppLayout } from '@/layouts/AppLayout';
 import { Loader } from '@/components/shared/Loader';
+import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { CommandPalette } from '@/components/shared/CommandPalette';
 import { GlobalSearch } from '@/components/shared/GlobalSearch';
 import { CallOverlay } from '@/components/calls/CallOverlay';
@@ -40,7 +41,7 @@ function AppRoutes() {
   }, [pathname]);
 
   return (
-    <>
+    <ErrorBoundary>
       <Routes>
         {/* Public auth routes */}
         <Route element={<PublicOnlyRoute><AuthLayout /></PublicOnlyRoute>}>
@@ -52,7 +53,11 @@ function AppRoutes() {
         {/* Protected app routes */}
         <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
           <Route path="/chats" element={<ChatsPage />}>
-            <Route path=":chatId" element={<ChatViewPage />} />
+            <Route path=":chatId" element={
+              <ErrorBoundary>
+                <ChatViewPage />
+              </ErrorBoundary>
+            } />
           </Route>
           <Route path="/groups" element={<GroupsPage />} />
           <Route path="/status" element={<StatusPage />} />
@@ -70,7 +75,7 @@ function AppRoutes() {
       <CommandPalette />
       <GlobalSearch />
       <CallOverlay />
-    </>
+    </ErrorBoundary>
   );
 }
 
