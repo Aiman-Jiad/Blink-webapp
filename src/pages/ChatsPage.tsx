@@ -141,7 +141,7 @@ export default function ChatsPage() {
           </div>
 
           {/* Chat list */}
-          <div className="no-scrollbar flex-1 overflow-y-auto px-2 pb-20 md:pb-2">
+          <div className="no-scrollbar flex-1 overflow-y-auto px-2 pb-mobile-nav md:pb-2">
             {loading ? (
               <ChatListSkeleton />
             ) : filtered.length === 0 ? (

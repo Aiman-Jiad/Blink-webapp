@@ -100,7 +100,7 @@ export default function StatusPage() {
         }
       />
 
-      <div className="flex-1 overflow-y-auto p-4 pb-24 md:pb-4">
+      <div className="flex-1 overflow-y-auto p-4 pb-mobile-nav md:pb-4">
         <div className="mx-auto max-w-2xl space-y-6">
           {/* My status */}
           <div>

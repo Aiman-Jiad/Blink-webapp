@@ -44,7 +44,7 @@ export default function GroupsPage() {
         }
       />
 
-      <div className="flex-1 overflow-y-auto p-2 pb-24 md:p-4 md:pb-4">
+      <div className="flex-1 overflow-y-auto p-2 pb-mobile-nav md:p-4 md:pb-4">
         <div className="mx-auto max-w-2xl">
           {groups.length === 0 ? (
             <EmptyState

@@ -31,7 +31,7 @@ export default function CallsPage() {
         }
       />
 
-      <div className="flex-1 overflow-y-auto p-2 pb-24 md:p-4 md:pb-4">
+      <div className="flex-1 overflow-y-auto p-2 pb-mobile-nav md:p-4 md:pb-4">
         <div className="mx-auto max-w-2xl">
           {CALL_HISTORY.length === 0 ? (
             <EmptyState
