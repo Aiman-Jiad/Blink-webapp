@@ -256,7 +256,7 @@ export function MessageComposer({
       </AnimatePresence>
 
       {/* Composer */}
-      <div className="flex items-end gap-1.5 px-2 py-2 pb-safe lg:px-4">
+      <div className="flex items-end gap-1.5 px-2 py-2 lg:px-4">
         {/* Emoji */}
         <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
           <PopoverTrigger asChild>

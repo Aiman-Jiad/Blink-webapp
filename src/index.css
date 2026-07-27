@@ -237,6 +237,11 @@
   .mb-safe {
     margin-bottom: env(safe-area-inset-bottom);
   }
+
+  /* Reserve space for the fixed mobile bottom nav (nav height + safe-area) */
+  .pb-mobile-nav {
+    padding-bottom: calc(3.5rem + env(safe-area-inset-bottom));
+  }
 }
 
 @keyframes fade-in {

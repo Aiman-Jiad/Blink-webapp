@@ -175,7 +175,7 @@ export default function ChatsPage() {
             On mobile, reserve room for the fixed bottom nav so the composer stays visible. */}
         <div className={cn(
           'min-h-0 flex-1 md:flex',
-          hasActiveChat ? 'flex pb-14 md:pb-0' : 'hidden',
+          hasActiveChat ? 'flex' : 'hidden',
         )}>
           <Outlet />
         </div>

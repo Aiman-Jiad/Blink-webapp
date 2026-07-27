@@ -434,9 +434,9 @@ export default function ChatViewPage() {
   const typingUsers = chat.typingUsers.filter((id) => id !== meId);
 
   return (
-    <div className="flex h-full min-h-0">
+    <div className="flex h-full w-full min-h-0">
       {/* Chat area */}
-      <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
+      <div className="flex h-full w-full min-h-0 min-w-0 flex-1 flex-col">
         {/* Header */}
         <header className="flex items-center justify-between gap-2 border-b border-border/60 bg-panel/70 px-3 py-2.5 shadow-soft backdrop-blur-xl lg:px-5 lg:py-3">
           <div className="flex min-w-0 flex-1 items-center gap-2.5">
@@ -650,7 +650,7 @@ export default function ChatViewPage() {
         </AnimatePresence>
 
         {/* Composer — pinned to bottom, never scrolls off, clears the fixed mobile nav */}
-        <div className="shrink-0 border-t border-border/60 bg-panel/90 px-1 pb-12 pt-1 shadow-[0_-2px_12px_-4px_rgba(0,0,0,0.08)] backdrop-blur-xl md:pb-1 lg:px-3 lg:py-1.5">
+        <div className="shrink-0 border-t border-border/60 bg-panel/90 px-1 pt-1 shadow-[0_-2px_12px_-4px_rgba(0,0,0,0.08)] backdrop-blur-xl pb-mobile-nav md:pb-1 lg:px-3 lg:py-1.5">
           <MessageComposer
             onSend={handleSend}
             onTyping={handleTyping}
