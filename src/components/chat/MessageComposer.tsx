@@ -221,7 +221,7 @@ export function MessageComposer({
       </AnimatePresence>
 
       {/* Composer */}
-      <div className="flex items-end gap-1.5 px-2 py-2 lg:px-4">
+      <div className="flex items-end gap-1.5 px-2 py-2 pb-safe lg:px-4">
         {/* Emoji */}
         <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
           <PopoverTrigger asChild>
@@ -261,6 +261,17 @@ export function MessageComposer({
             </div>
           </PopoverContent>
         </Popover>
+
+        {/* Camera (quick) — always visible in the bar on mobile per spec */}
+        <Button
+          size="icon"
+          variant="ghost"
+          className="shrink-0 text-muted-foreground hover:text-primary md:hidden"
+          aria-label="Camera"
+          onClick={() => cameraInputRef.current?.click()}
+        >
+          <Camera className="h-5 w-5" />
+        </Button>
 
         {/* Text input */}
         <div className="relative min-w-0 flex-1">

@@ -50,7 +50,7 @@ function MessageBubbleBase({
     return (
       <div className={cn('flex px-3', isMine ? 'justify-end' : 'justify-start')}>
         <div className={cn(
-          'max-w-[75%] rounded-2xl px-3 py-2 text-sm italic text-muted-foreground',
+          'max-w-[75%] rounded-2xl px-3 py-2 text-sm italic text-muted-foreground shadow-bubble',
           isMine ? 'bg-chat-bubble-me text-foreground' : 'bg-chat-bubble-them',
           isMine ? 'rounded-br-md' : 'rounded-bl-md',
         )}>
@@ -73,7 +73,7 @@ function MessageBubbleBase({
       initial={{ opacity: 0, y: 8, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-      className={cn('group relative flex max-w-[78%] flex-col', isMine ? 'items-end' : 'items-start')}
+      className={cn('group relative flex max-w-[78%] flex-col transition-transform duration-150', isMine ? 'items-end' : 'items-start')}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
     >
@@ -110,7 +110,7 @@ function MessageBubbleBase({
 
         <div
           className={cn(
-            'relative rounded-2xl px-3 py-2 shadow-bubble',
+            'relative rounded-2xl px-3 py-2 shadow-soft transition-shadow duration-150 group-hover:shadow-soft-lg',
             isMine ? 'bg-chat-bubble-me text-foreground' : 'bg-chat-bubble-them text-foreground',
             isMine ? 'rounded-br-md' : 'rounded-bl-md',
             isMedia && 'overflow-hidden p-1',
@@ -189,7 +189,7 @@ function MessageBubbleBase({
   );
 
   return (
-    <div className={cn('flex items-end gap-2 px-3 py-0.5', isMine ? 'justify-end' : 'justify-start', isLastInGroup && 'mb-2')}>
+    <div className={cn('flex items-end gap-2 px-3 py-0.5', isMine ? 'justify-end' : 'justify-start', isLastInGroup && 'mb-2.5')}>
       {!isMine && isGroup && (
         <div className={cn('w-8 shrink-0', showAvatar && isLastInGroup)}>
           {showAvatar && isLastInGroup && senderName && (

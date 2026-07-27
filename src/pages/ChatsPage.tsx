@@ -171,8 +171,12 @@ export default function ChatsPage() {
           </div>
         </div>
 
-        {/* Chat view slot — hidden on mobile when no chat active, shown when chat is open */}
-        <div className={cn('flex-1', hasActiveChat ? 'flex' : 'hidden md:flex')}>
+        {/* Chat view slot — hidden on mobile when no chat active, shown when chat is open.
+            On mobile, reserve room for the fixed bottom nav so the composer stays visible. */}
+        <div className={cn(
+          'min-h-0 flex-1 md:flex',
+          hasActiveChat ? 'flex pb-14 md:pb-0' : 'hidden',
+        )}>
           <Outlet />
         </div>
       </div>

@@ -343,11 +343,11 @@ export default function ChatViewPage() {
   const typingUsers = chat.typingUsers.filter((id) => id !== meId);
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full min-h-0">
       {/* Chat area */}
-      <div className="flex h-full min-w-0 flex-1 flex-col">
+      <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
         {/* Header */}
-        <header className="flex items-center justify-between gap-2 border-b border-border/60 bg-panel/80 px-3 py-2.5 backdrop-blur lg:px-4">
+        <header className="flex items-center justify-between gap-2 border-b border-border/60 bg-panel/70 px-3 py-2.5 shadow-soft backdrop-blur-xl lg:px-5 lg:py-3">
           <div className="flex min-w-0 flex-1 items-center gap-2.5">
             <Button
               size="icon"
@@ -358,10 +358,10 @@ export default function ChatViewPage() {
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <button onClick={() => setInfoOpen(true)} className="flex min-w-0 items-center gap-2.5">
-              <UserAvatar name={displayName} src={displayPhoto} size="sm" status={otherStatus as 'online' | 'offline'} showStatus />
+            <button onClick={() => setInfoOpen(true)} className="flex min-w-0 items-center gap-3 rounded-lg transition-colors">
+              <UserAvatar name={displayName} src={displayPhoto} size="md" status={otherStatus as 'online' | 'offline'} showStatus />
               <div className="min-w-0 text-left">
-                <p className="truncate font-semibold text-foreground">{displayName}</p>
+                <p className="truncate font-display text-[15px] font-semibold tracking-tight text-foreground">{displayName}</p>
                 <p className="truncate text-xs text-muted-foreground">
                   {typingUsers.length > 0 ? (
                     <span className="text-primary">typing…</span>
@@ -377,14 +377,14 @@ export default function ChatViewPage() {
             </button>
           </div>
 
-          <div className="flex shrink-0 items-center gap-0.5">
-            <Button size="icon" variant="ghost" onClick={() => openCall({ type: 'video', peerName: displayName, peerPhoto: displayPhoto ?? null })} aria-label="Video call">
+          <div className="flex shrink-0 items-center gap-0.5 lg:gap-1">
+            <Button size="icon" variant="ghost" className="hover:bg-primary/10 hover:text-primary" onClick={() => openCall({ type: 'video', peerName: displayName, peerPhoto: displayPhoto ?? null })} aria-label="Video call">
               <Video className="h-5 w-5" />
             </Button>
-            <Button size="icon" variant="ghost" onClick={() => openCall({ type: 'audio', peerName: displayName, peerPhoto: displayPhoto ?? null })} aria-label="Voice call">
+            <Button size="icon" variant="ghost" className="hover:bg-primary/10 hover:text-primary" onClick={() => openCall({ type: 'audio', peerName: displayName, peerPhoto: displayPhoto ?? null })} aria-label="Voice call">
               <Phone className="h-5 w-5" />
             </Button>
-            <Button size="icon" variant="ghost" onClick={() => setSearchOpen((s) => !s)} aria-label="Search in chat">
+            <Button size="icon" variant="ghost" className="hover:bg-primary/10 hover:text-primary" onClick={() => setSearchOpen((s) => !s)} aria-label="Search in chat">
               <Search className="h-5 w-5" />
             </Button>
             <DropdownMenu>
@@ -460,7 +460,7 @@ export default function ChatViewPage() {
               setShowScrollBtn(el.scrollHeight - el.scrollTop - el.clientHeight > 200);
             }
           }}
-          className="no-scrollbar flex-1 overflow-y-auto chat-doodle py-4"
+          className="no-scrollbar min-h-0 flex-1 overflow-y-auto chat-doodle px-1 py-4 lg:px-4 lg:py-6"
         >
           {loading ? (
             <MessageSkeleton />
@@ -474,7 +474,7 @@ export default function ChatViewPage() {
             grouped.map((group) => (
               <div key={group.label}>
                 <div className="my-3 flex justify-center">
-                  <span className="rounded-full bg-panel/80 px-3 py-1 text-[11px] font-medium text-muted-foreground shadow-sm backdrop-blur">
+                  <span className="rounded-full bg-panel/90 px-3 py-1 text-[11px] font-medium text-muted-foreground shadow-soft backdrop-blur-md">
                     {group.label}
                   </span>
                 </div>
@@ -482,7 +482,7 @@ export default function ChatViewPage() {
                   const next = group.items[idx + 1];
                   const isLastInGroup = !next || next.senderId !== msg.senderId || (msg.createdAt - next.createdAt > 60000);
                   return (
-                    <div id={`msg-${msg.id}`} key={msg.id} className="transition-all rounded-lg">
+                    <div id={`msg-${msg.id}`} key={msg.id} className="transition-all duration-200 rounded-xl hover:bg-foreground/[0.02]">
                       <MessageBubble
                         message={msg}
                         isMine={msg.senderId === meId}
@@ -510,7 +510,7 @@ export default function ChatViewPage() {
           {typingUsers.length > 0 && (
             <div className="flex items-end gap-2 px-3 py-1">
               {!isGroup && <div className="w-8 shrink-0" />}
-              <div className="flex items-center gap-2 rounded-2xl rounded-bl-md bg-chat-bubble-them px-3 py-2.5 shadow-bubble">
+              <div className="flex items-center gap-2 rounded-2xl rounded-bl-md bg-chat-bubble-them px-3 py-2.5 shadow-soft">
                 <TypingIndicator className="text-muted-foreground" />
               </div>
             </div>
@@ -533,8 +533,8 @@ export default function ChatViewPage() {
           )}
         </AnimatePresence>
 
-        {/* Composer */}
-        <div className="border-t border-border/60 bg-panel/80 px-1 py-1 backdrop-blur lg:px-2">
+        {/* Composer — pinned to bottom, never scrolls off, clears the fixed mobile nav */}
+        <div className="shrink-0 border-t border-border/60 bg-panel/90 px-1 pb-12 pt-1 shadow-[0_-2px_12px_-4px_rgba(0,0,0,0.08)] backdrop-blur-xl md:pb-1 lg:px-3 lg:py-1.5">
           <MessageComposer
             onSend={handleSend}
             onTyping={handleTyping}

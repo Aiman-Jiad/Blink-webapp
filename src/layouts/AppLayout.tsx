@@ -4,7 +4,7 @@ import { MobileNav } from '@/components/layout/MobileNav';
 
 export function AppLayout() {
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background">
+    <div className="flex h-dynamic w-full overflow-hidden bg-background">
       {/* Desktop sidebar */}
       <Sidebar />
 

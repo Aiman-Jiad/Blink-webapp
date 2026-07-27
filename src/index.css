@@ -223,6 +223,20 @@
     background-size: 200% 100%;
     animation: shimmer 1.4s infinite;
   }
+
+  /* Dynamic viewport height — fixes 100vh issues on mobile browsers */
+  .h-dynamic {
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  /* Safe-area padding for bottom edge (home indicator) */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .mb-safe {
+    margin-bottom: env(safe-area-inset-bottom);
+  }
 }
 
 @keyframes fade-in {
