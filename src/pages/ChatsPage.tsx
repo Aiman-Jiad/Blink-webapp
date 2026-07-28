@@ -193,24 +193,24 @@ export default function ChatsPage() {
 
       <NewChatDialog open={newChatOpen} onOpenChange={setNewChatOpen} />
 
-      {/* Floating compose button — visible on mobile when no chat is open */}
-      <AnimatePresence>
-        {!hasActiveChat && (
-          <motion.button
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 22 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => setNewChatOpen(true)}
-            className="fixed right-4 z-30 grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-soft-lg ring-1 ring-primary/20 transition-[bottom] md:hidden"
-            style={{ bottom: 'calc(3.5rem + env(safe-area-inset-bottom) + 1rem)' }}
-            aria-label="New chat"
-          >
-            <MessageSquarePlus className="h-6 w-6" />
-          </motion.button>
-        )}
-      </AnimatePresence>
+      {/* Floating compose button — visible on mobile when no chat is open.
+          Direct conditional render (no AnimatePresence) so it unmounts
+          the instant a chat route becomes active, with zero exit-animation
+          delay. Enter animation still plays when returning to the list. */}
+      {!hasActiveChat && (
+        <motion.button
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 400, damping: 22 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => setNewChatOpen(true)}
+          className="fixed right-4 z-30 grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-soft-lg ring-1 ring-primary/20 transition-[bottom] md:hidden"
+          style={{ bottom: 'calc(3.5rem + env(safe-area-inset-bottom) + 1rem)' }}
+          aria-label="New chat"
+        >
+          <MessageSquarePlus className="h-6 w-6" />
+        </motion.button>
+      )}
     </>
   );
 }
