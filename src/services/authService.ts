@@ -45,6 +45,11 @@ function profileFromFbUser(u: FbUser): UserProfile {
     online: true,
     createdAt: Date.now(),
     readReceiptsEnabled: true,
+    photoVisibility: 'everyone',
+    aboutVisibility: 'everyone',
+    lastSeenVisibility: 'everyone',
+    onlineStatusVisibility: 'everyone',
+    readReceiptsVisibility: 'everyone',
   };
 }
 
@@ -125,6 +130,11 @@ export const authService = {
       online: true,
       createdAt: Date.now(),
       readReceiptsEnabled: true,
+      photoVisibility: 'everyone',
+      aboutVisibility: 'everyone',
+      lastSeenVisibility: 'everyone',
+      onlineStatusVisibility: 'everyone',
+      readReceiptsVisibility: 'everyone',
     };
     await persistProfile(profile);
     return mockCreateSession(profile);
@@ -153,6 +163,11 @@ export const authService = {
       online: true,
       createdAt: Date.now(),
       readReceiptsEnabled: true,
+      photoVisibility: 'everyone',
+      aboutVisibility: 'everyone',
+      lastSeenVisibility: 'everyone',
+      onlineStatusVisibility: 'everyone',
+      readReceiptsVisibility: 'everyone',
     };
     await persistProfile(profile);
     return mockCreateSession(profile);
@@ -182,6 +197,11 @@ export const authService = {
       online: true,
       createdAt: Date.now(),
       readReceiptsEnabled: true,
+      photoVisibility: 'everyone',
+      aboutVisibility: 'everyone',
+      lastSeenVisibility: 'everyone',
+      onlineStatusVisibility: 'everyone',
+      readReceiptsVisibility: 'everyone',
     };
     await persistProfile(profile);
     return mockCreateSession(profile);

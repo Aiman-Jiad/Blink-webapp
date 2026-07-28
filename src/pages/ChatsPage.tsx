@@ -3,6 +3,7 @@ import { Outlet, useParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Search, MessageSquarePlus, Filter, Pin, Archive, Star, X } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { OverflowMenu } from '@/components/layout/OverflowMenu';
 import { ChatListItem } from '@/components/chat/ChatListItem';
 import { ChatListSkeleton } from '@/components/shared/Skeletons';
 import { EmptyState } from '@/components/shared/EmptyState';
@@ -87,14 +88,17 @@ export default function ChatsPage() {
             title="Chats"
             subtitle={`${chats.length} conversations`}
             actions={
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={() => setNewChatOpen(true)}
-                aria-label="New chat"
-              >
-                <MessageSquarePlus className="h-5 w-5" />
-              </Button>
+              <>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => setNewChatOpen(true)}
+                  aria-label="New chat"
+                >
+                  <MessageSquarePlus className="h-5 w-5" />
+                </Button>
+                <OverflowMenu />
+              </>
             }
           />
 

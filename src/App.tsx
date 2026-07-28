@@ -24,6 +24,7 @@ const StatusPage = lazy(() => import('@/pages/StatusPage'));
 const CallsPage = lazy(() => import('@/pages/CallsPage'));
 const ProfilePage = lazy(() => import('@/pages/ProfilePage'));
 const EditProfilePage = lazy(() => import('@/pages/EditProfilePage'));
+const SharedProfilePage = lazy(() => import('@/pages/SharedProfilePage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
 
@@ -64,6 +65,7 @@ function AppRoutes() {
           <Route path="/calls" element={<CallsPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/profile/edit" element={<EditProfilePage />} />
+          <Route path="/u/:username" element={<SharedProfilePage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
 

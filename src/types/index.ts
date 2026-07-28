@@ -6,6 +6,8 @@
 
 export type UserStatus = 'online' | 'offline' | 'away';
 
+export type PrivacyScope = 'everyone' | 'contacts' | 'nobody';
+
 export interface UserProfile {
   id: string;
   name: string;
@@ -20,6 +22,12 @@ export interface UserProfile {
   createdAt: number;
   /** Has the user enabled read receipts? */
   readReceiptsEnabled: boolean;
+  /** Privacy controls — enforced via the settings store + message rendering layer. */
+  photoVisibility: PrivacyScope;
+  aboutVisibility: PrivacyScope;
+  lastSeenVisibility: PrivacyScope;
+  onlineStatusVisibility: PrivacyScope;
+  readReceiptsVisibility: PrivacyScope;
 }
 
 export type MessageStatus = 'sending' | 'sent' | 'delivered' | 'read';
