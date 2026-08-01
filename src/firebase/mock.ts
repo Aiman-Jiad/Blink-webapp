@@ -15,6 +15,8 @@ import type {
   StatusItem,
   Highlight,
   Notification,
+  Poll,
+  ActionItem,
 } from '@/types';
 
 const KEYS = {
@@ -24,12 +26,14 @@ const KEYS = {
   statuses: 'blink:statuses',
   highlights: 'blink:highlights',
   notifications: 'blink:notifications',
+  polls: 'blink:polls',
+  actions: 'blink:actions',
   session: 'blink:session',
   seeded: 'blink:seeded',
 } as const;
 
 // Bump when seed data changes to force a re-seed for existing users.
-const SEED_VERSION = 4;
+const SEED_VERSION = 5;
 
 function read<T>(key: string, fallback: T): T {
   try {
@@ -182,12 +186,40 @@ const SEED_CHATS: Chat[] = [
     unreadCount: { me: 5 },
     pinnedBy: [],
     archivedBy: [],
-    favouriteBy: [],
+    favouriteBy: ['me'],
     mutedBy: [],
     createdBy: 'me',
     createdAt: Date.now() - 86400000 * 10,
     updatedAt: Date.now() - 1000 * 60 * 60,
     typingUsers: [],
+    permissions: { whoCanEditInfo: 'admins', whoCanSendMessages: 'everyone', whoCanAddMembers: 'admins' },
+    inviteCode: 'blink-design-2025',
+  },
+  {
+    id: 'c_startup_club',
+    type: 'group',
+    name: 'Startup Club',
+    description: 'Building the next big thing, together.',
+    photoURL: null,
+    participants: [
+      { userId: 'me', role: 'member', joinedAt: Date.now() - 86400000 * 6 },
+      { userId: 'u_marcus', role: 'admin', joinedAt: Date.now() - 86400000 * 6 },
+      { userId: 'u_kenji', role: 'member', joinedAt: Date.now() - 86400000 * 5 },
+      { userId: 'u_sofia', role: 'member', joinedAt: Date.now() - 86400000 * 4 },
+    ],
+    participantIds: ['me', 'u_marcus', 'u_kenji', 'u_sofia'],
+    lastMessage: { text: 'Marcus: Demo day is in 2 weeks!', senderId: 'u_marcus', type: 'text', createdAt: Date.now() - 1000 * 60 * 60 * 3 },
+    unreadCount: { me: 0 },
+    pinnedBy: [],
+    archivedBy: [],
+    favouriteBy: [],
+    mutedBy: ['me'],
+    createdBy: 'u_marcus',
+    createdAt: Date.now() - 86400000 * 6,
+    updatedAt: Date.now() - 1000 * 60 * 60 * 3,
+    typingUsers: [],
+    permissions: { whoCanEditInfo: 'admins', whoCanSendMessages: 'everyone', whoCanAddMembers: 'everyone' },
+    inviteCode: 'blink-startup-2025',
   },
   {
     id: 'c_marcus',
@@ -247,7 +279,20 @@ function seedMessages(): Record<string, Message[]> {
       mkMsg('c_design_team', 'u_alice', 'text', 'Morning team! Big day today', now - 1000 * 60 * 180),
       mkMsg('c_design_team', 'u_sofia', 'text', 'Morning! Coffee in hand ☕', now - 1000 * 60 * 178),
       mkMsg('c_design_team', 'u_priya', 'text', 'I pushed the user research summary to Notion', now - 1000 * 60 * 120),
+      mkMsg('c_design_team', 'u_priya', 'text', 'Key finding: 73% of users prefer the sidebar on the left', now - 1000 * 60 * 118, [], undefined, true),
+      mkMsg('c_design_team', 'u_alice', 'text', '@me can you review the color tokens before standup?', now - 1000 * 60 * 90),
+      mkMsg('c_design_team', 'u_sofia', 'image', '', now - 1000 * 60 * 70, [{
+        id: nanoid(), type: 'image', url: 'https://images.pexels.com/photos/3184292/pexels-photo-3184292.jpeg?auto=compress&cs=tinysrgb&w=600',
+        name: 'mockup.png', size: 340000, mimeType: 'image/png',
+      }]),
       mkMsg('c_design_team', 'u_sofia', 'text', 'Just pushed the new mockups to Figma', now - 1000 * 60 * 60),
+      mkMsg('c_design_team', 'u_marcus', 'text', 'Check out this article on design systems https://www.smashingmagazine.com/design-systems', now - 1000 * 60 * 45),
+    ],
+    c_startup_club: [
+      mkMsg('c_startup_club', 'u_marcus', 'text', 'Welcome to the startup club!', now - 1000 * 60 * 60 * 24 * 5),
+      mkMsg('c_startup_club', 'u_kenji', 'text', 'Excited to be here!', now - 1000 * 60 * 60 * 24 * 4),
+      mkMsg('c_startup_club', 'u_sofia', 'text', 'Same! What is everyone working on?', now - 1000 * 60 * 60 * 24 * 3),
+      mkMsg('c_startup_club', 'u_marcus', 'text', 'Demo day is in 2 weeks!', now - 1000 * 60 * 60 * 3),
     ],
     c_marcus: [
       mkMsg('c_marcus', 'u_marcus', 'text', 'Did you see the new React 19 features?', now - 1000 * 60 * 60 * 2),
@@ -268,6 +313,7 @@ function mkMsg(
   createdAt: number,
   attachments: Message['attachments'] = [],
   reaction?: { id: string; emoji: string; userId: string; createdAt: number },
+  pinned = false,
 ): Message {
   return {
     id: nanoid(),
@@ -279,7 +325,7 @@ function mkMsg(
     status: senderId === 'me' ? 'read' : 'delivered',
     reactions: reaction ? [reaction] : [],
     starred: false,
-    pinned: false,
+    pinned,
     deletedForEveryone: false,
     deletedFor: [],
     readBy: ['me', senderId],
@@ -288,6 +334,55 @@ function mkMsg(
     createdAt,
   };
 }
+
+const SEED_POLLS: Poll[] = [
+  {
+    id: nanoid(),
+    chatId: 'c_design_team',
+    messageId: '',
+    question: 'When should we schedule the design review?',
+    options: [
+      { id: nanoid(), text: 'Tuesday 2pm', votes: ['u_alice', 'u_sofia'] },
+      { id: nanoid(), text: 'Wednesday 10am', votes: ['u_priya'] },
+      { id: nanoid(), text: 'Thursday 3pm', votes: ['me'] },
+    ],
+    multiChoice: false,
+    createdBy: 'u_alice',
+    createdAt: Date.now() - 1000 * 60 * 60 * 2,
+  },
+];
+
+const SEED_ACTIONS: ActionItem[] = [
+  {
+    id: nanoid(),
+    chatId: 'c_design_team',
+    text: 'Review color tokens before standup',
+    assigneeId: 'me',
+    createdBy: 'u_alice',
+    completed: false,
+    createdAt: Date.now() - 1000 * 60 * 90,
+  },
+  {
+    id: nanoid(),
+    chatId: 'c_design_team',
+    text: 'Finalize Figma mockups',
+    assigneeId: 'u_sofia',
+    createdBy: 'u_alice',
+    completed: true,
+    createdAt: Date.now() - 1000 * 60 * 60 * 5,
+    completedAt: Date.now() - 1000 * 60 * 30,
+  },
+  {
+    id: nanoid(),
+    chatId: 'c_design_team',
+    text: 'Share user research summary',
+    assigneeId: 'u_priya',
+    createdBy: 'u_priya',
+    completed: true,
+    createdAt: Date.now() - 1000 * 60 * 60 * 6,
+    completedAt: Date.now() - 1000 * 60 * 60 * 2,
+  },
+];
 
 const SEED_STATUSES: StatusItem[] = [
   // Sofia — recent, unviewed, multiple items
@@ -401,6 +496,8 @@ export function ensureSeed(): void {
   write(KEYS.messages, seedMessages());
   write(KEYS.statuses, SEED_STATUSES);
   write(KEYS.highlights, SEED_HIGHLIGHTS);
+  write(KEYS.polls, SEED_POLLS);
+  write(KEYS.actions, SEED_ACTIONS);
   write(KEYS.notifications, [] as Notification[]);
   write(KEYS.seeded, true);
   write('blink:seed_version', SEED_VERSION);
@@ -598,6 +695,76 @@ export const mockHighlights = {
   async remove(id: string): Promise<void> {
     const all = read<Highlight[]>(KEYS.highlights, []);
     write(KEYS.highlights, all.filter((h) => h.id !== id));
+    return delay(undefined);
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Polls
+// ---------------------------------------------------------------------------
+
+export const mockPolls = {
+  async forChat(chatId: string): Promise<Poll[]> {
+    const all = read<Poll[]>(KEYS.polls, []);
+    return delay(all.filter((p) => p.chatId === chatId));
+  },
+  async add(poll: Poll): Promise<Poll> {
+    const all = read<Poll[]>(KEYS.polls, []);
+    all.push(poll);
+    write(KEYS.polls, all);
+    return delay(poll);
+  },
+  async vote(pollId: string, optionId: string, userId: string): Promise<void> {
+    const all = read<Poll[]>(KEYS.polls, []);
+    const poll = all.find((p) => p.id === pollId);
+    if (!poll) return delay(undefined);
+    if (!poll.multiChoice) {
+      poll.options.forEach((opt) => {
+        opt.votes = opt.votes.filter((v) => v !== userId);
+      });
+    }
+    const opt = poll.options.find((o) => o.id === optionId);
+    if (opt && !opt.votes.includes(userId)) {
+      opt.votes.push(userId);
+    }
+    write(KEYS.polls, all);
+    return delay(undefined, 40);
+  },
+  async remove(pollId: string): Promise<void> {
+    const all = read<Poll[]>(KEYS.polls, []);
+    write(KEYS.polls, all.filter((p) => p.id !== pollId));
+    return delay(undefined);
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Action Items
+// ---------------------------------------------------------------------------
+
+export const mockActions = {
+  async forChat(chatId: string): Promise<ActionItem[]> {
+    const all = read<ActionItem[]>(KEYS.actions, []);
+    return delay(all.filter((a) => a.chatId === chatId));
+  },
+  async add(item: ActionItem): Promise<ActionItem> {
+    const all = read<ActionItem[]>(KEYS.actions, []);
+    all.push(item);
+    write(KEYS.actions, all);
+    return delay(item);
+  },
+  async toggle(id: string): Promise<void> {
+    const all = read<ActionItem[]>(KEYS.actions, []);
+    const item = all.find((a) => a.id === id);
+    if (item) {
+      item.completed = !item.completed;
+      item.completedAt = item.completed ? Date.now() : undefined;
+      write(KEYS.actions, all);
+    }
+    return delay(undefined, 40);
+  },
+  async remove(id: string): Promise<void> {
+    const all = read<ActionItem[]>(KEYS.actions, []);
+    write(KEYS.actions, all.filter((a) => a.id !== id));
     return delay(undefined);
   },
 };

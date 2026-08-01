@@ -14,6 +14,9 @@ import { TypingIndicator } from '@/components/shared/TypingIndicator';
 import { UserAvatar } from '@/components/shared/UserAvatar';
 import { ChatInfoPanel } from '@/components/chat/ChatInfoPanel';
 import { ForwardDialog, type ForwardTarget } from '@/components/chat/ForwardDialog';
+import { CreatePollDialog } from '@/components/group/PollCard';
+import { GroupAvatar } from '@/components/shared/GroupAvatar';
+import { BarChart3, Hand } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
@@ -77,6 +80,7 @@ export default function ChatViewPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [forwardOpen, setForwardOpen] = useState(false);
   const [forwardPayload, setForwardPayload] = useState<Message[]>([]);
+  const [pollOpen, setPollOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const meId = me?.id ?? 'me';
 
@@ -497,6 +501,11 @@ export default function ChatViewPage() {
                 <DropdownMenuItem onClick={() => enterSelectionMode()}>
                   <CheckSquare className="mr-2 h-4 w-4" /> Select messages
                 </DropdownMenuItem>
+                {isGroup && (
+                  <DropdownMenuItem onClick={() => setPollOpen(true)}>
+                    <BarChart3 className="mr-2 h-4 w-4" /> Create poll
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem className="text-destructive" onClick={deleteChat}>
                   <Trash2 className="mr-2 h-4 w-4" /> Delete chat
@@ -577,11 +586,31 @@ export default function ChatViewPage() {
           {loading ? (
             <MessageSkeleton />
           ) : chatMessages.length === 0 ? (
-            <EmptyState
-              icon={Info}
-              title="No messages yet"
-              description="Send a message to start the conversation."
-            />
+            isGroup ? (
+              <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
+                <GroupAvatar name={displayName} src={displayPhoto} size="xl" className="mb-4" />
+                <h2 className="font-display text-xl font-bold">{displayName}</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Start the conversation in this group</p>
+                <div className="mt-6 flex flex-wrap justify-center gap-2">
+                  <button onClick={() => {
+                    const msg: Message = { id: nanoid(), chatId: chatId!, senderId: meId, type: 'text', text: '👋 Hey everyone!', attachments: [], replyTo: null, status: 'sent', reactions: [], starred: false, pinned: false, deletedForEveryone: false, deletedFor: [], readBy: [meId], createdAt: Date.now() };
+                    addMessage(msg); dataService.messages.add(msg); updateChat({ ...chat, lastMessage: { text: msg.text, senderId: meId, type: 'text', createdAt: msg.createdAt }, updatedAt: msg.createdAt });
+                    toast.success('Message sent');
+                  }} className="flex items-center gap-1.5 rounded-full bg-primary/10 px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/20">
+                    <Hand className="h-4 w-4" /> Say hello
+                  </button>
+                  <button onClick={() => setPollOpen(true)} className="flex items-center gap-1.5 rounded-full bg-sky-500/10 px-4 py-2 text-sm font-medium text-sky-600 transition-colors hover:bg-sky-500/20">
+                    <BarChart3 className="h-4 w-4" /> Create poll
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <EmptyState
+                icon={Info}
+                title="No messages yet"
+                description="Send a message to start the conversation."
+              />
+            )
           ) : (
             grouped.map((group) => (
               <div key={group.label}>
@@ -697,6 +726,20 @@ export default function ChatViewPage() {
         onForward={doForward}
         messageCount={forwardPayload.length}
       />
+
+      {/* Create poll dialog */}
+      {isGroup && chat && (
+        <CreatePollDialog
+          open={pollOpen}
+          onClose={() => setPollOpen(false)}
+          chat={chat}
+          meId={meId}
+          onCreate={async (poll) => {
+            await dataService.polls.add(poll);
+            toast.success('Poll created');
+          }}
+        />
+      )}
 
       {/* Info panel */}
       <AnimatePresence>

@@ -13,7 +13,7 @@
 import { FIREBASE_ENABLED } from '@/firebase/config';
 import { ensureSeed } from '@/firebase/mock';
 import * as mock from '@/firebase/mock';
-import type { Chat, Message, Notification, StatusItem, StatusReaction, StatusReply, Highlight, UserProfile } from '@/types';
+import type { Chat, Message, Notification, StatusItem, StatusReaction, StatusReply, Highlight, UserProfile, Poll, ActionItem } from '@/types';
 
 ensureSeed();
 
@@ -49,6 +49,18 @@ export interface DataService {
     add: (hl: Highlight) => Promise<Highlight>;
     remove: (id: string) => Promise<void>;
   };
+  polls: {
+    forChat: (chatId: string) => Promise<Poll[]>;
+    add: (poll: Poll) => Promise<Poll>;
+    vote: (pollId: string, optionId: string, userId: string) => Promise<void>;
+    remove: (pollId: string) => Promise<void>;
+  };
+  actions: {
+    forChat: (chatId: string) => Promise<ActionItem[]>;
+    add: (item: ActionItem) => Promise<ActionItem>;
+    toggle: (id: string) => Promise<void>;
+    remove: (id: string) => Promise<void>;
+  };
   notifications: {
     all: () => Promise<Notification[]>;
     add: (n: Notification) => Promise<Notification>;
@@ -68,7 +80,9 @@ export const dataService: DataService = {
   messages: mock.mockMessages,
   statuses: mock.mockStatuses,
   highlights: mock.mockHighlights,
+  polls: mock.mockPolls,
+  actions: mock.mockActions,
   notifications: mock.mockNotifications,
 };
 
-export type { Chat, Message, Notification, StatusItem, StatusReaction, StatusReply, Highlight, UserProfile } from '@/types';
+export type { Chat, Message, Notification, StatusItem, StatusReaction, StatusReply, Highlight, UserProfile, Poll, ActionItem } from '@/types';

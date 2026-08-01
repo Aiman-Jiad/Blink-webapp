@@ -82,6 +82,41 @@ export interface Message {
 
 export type ChatType = 'direct' | 'group';
 
+export type GroupPermissions = {
+  whoCanEditInfo: 'admins' | 'everyone';
+  whoCanSendMessages: 'everyone' | 'admins';
+  whoCanAddMembers: 'admins' | 'everyone';
+};
+
+export interface PollOption {
+  id: string;
+  text: string;
+  votes: string[]; // userIds
+}
+
+export interface Poll {
+  id: string;
+  chatId: string;
+  messageId: string;
+  question: string;
+  options: PollOption[];
+  multiChoice: boolean;
+  createdBy: string;
+  createdAt: number;
+  expiresAt?: number;
+}
+
+export interface ActionItem {
+  id: string;
+  chatId: string;
+  text: string;
+  assigneeId: string | null;
+  createdBy: string;
+  completed: boolean;
+  createdAt: number;
+  completedAt?: number;
+}
+
 export interface ChatParticipant {
   userId: string;
   role: 'admin' | 'member';
@@ -111,6 +146,8 @@ export interface Chat {
   createdAt: number;
   updatedAt: number;
   typingUsers: string[];
+  permissions?: GroupPermissions;
+  inviteCode?: string;
 }
 
 export interface StatusReaction {
