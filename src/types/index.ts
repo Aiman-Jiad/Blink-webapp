@@ -131,6 +131,7 @@ export interface StatusGroup {
   userPhoto: string | null;
   items: StatusItem[];
   hasUnviewed: boolean;
+  muted: boolean;
 }
 
 export type CallType = 'audio' | 'video';

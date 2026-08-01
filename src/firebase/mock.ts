@@ -27,7 +27,7 @@ const KEYS = {
 } as const;
 
 // Bump when seed data changes to force a re-seed for existing users.
-const SEED_VERSION = 2;
+const SEED_VERSION = 3;
 
 function read<T>(key: string, fallback: T): T {
   try {
@@ -288,6 +288,7 @@ function mkMsg(
 }
 
 const SEED_STATUSES: StatusItem[] = [
+  // Sofia — recent, unviewed, multiple items
   {
     id: nanoid(),
     userId: 'u_sofia',
@@ -300,13 +301,57 @@ const SEED_STATUSES: StatusItem[] = [
   },
   {
     id: nanoid(),
+    userId: 'u_sofia',
+    type: 'text',
+    content: 'Best trip ever ✨',
+    background: 'from-rose-500 to-pink-700',
+    viewers: [],
+    createdAt: Date.now() - 1000 * 60 * 28,
+    expiresAt: Date.now() + 1000 * 60 * 60 * 23,
+  },
+  // Marcus — viewed by me
+  {
+    id: nanoid(),
     userId: 'u_marcus',
     type: 'text',
     content: 'Shipping is a feature.',
-    background: 'gradient-sunset',
+    background: 'from-amber-500 to-orange-700',
     viewers: [{ userId: 'me', viewedAt: Date.now() - 1000 * 60 * 10 }],
     createdAt: Date.now() - 1000 * 60 * 60 * 2,
     expiresAt: Date.now() + 1000 * 60 * 60 * 22,
+  },
+  // Alice — recent, unviewed, image
+  {
+    id: nanoid(),
+    userId: 'u_alice',
+    type: 'image',
+    content: 'https://images.pexels.com/photos/1183266/pexels-photo-1183266.jpeg?auto=compress&cs=tinysrgb&w=600',
+    caption: 'New workspace setup 💻',
+    viewers: [],
+    createdAt: Date.now() - 1000 * 60 * 45,
+    expiresAt: Date.now() + 1000 * 60 * 60 * 23,
+  },
+  // Kenji — viewed by me, text
+  {
+    id: nanoid(),
+    userId: 'u_kenji',
+    type: 'text',
+    content: 'Late night debugging session 🔧',
+    background: 'from-sky-500 to-blue-700',
+    viewers: [{ userId: 'me', viewedAt: Date.now() - 1000 * 60 * 60 * 1 }],
+    createdAt: Date.now() - 1000 * 60 * 60 * 3,
+    expiresAt: Date.now() + 1000 * 60 * 60 * 21,
+  },
+  // Priya — viewed by me, image
+  {
+    id: nanoid(),
+    userId: 'u_priya',
+    type: 'image',
+    content: 'https://images.pexels.com/photos/206359/pexels-photo-206359.jpeg?auto=compress&cs=tinysrgb&w=600',
+    caption: 'Coffee art goals ☕',
+    viewers: [{ userId: 'me', viewedAt: Date.now() - 1000 * 60 * 60 * 4 }],
+    createdAt: Date.now() - 1000 * 60 * 60 * 5,
+    expiresAt: Date.now() + 1000 * 60 * 60 * 19,
   },
 ];
 
