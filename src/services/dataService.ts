@@ -13,7 +13,7 @@
 import { FIREBASE_ENABLED } from '@/firebase/config';
 import { ensureSeed } from '@/firebase/mock';
 import * as mock from '@/firebase/mock';
-import type { Chat, Message, Notification, StatusItem, UserProfile } from '@/types';
+import type { Chat, Message, Notification, StatusItem, StatusReaction, StatusReply, Highlight, UserProfile } from '@/types';
 
 ensureSeed();
 
@@ -40,6 +40,14 @@ export interface DataService {
     all: () => Promise<StatusItem[]>;
     add: (status: StatusItem) => Promise<StatusItem>;
     view: (id: string, userId: string) => Promise<void>;
+    react: (id: string, emoji: string, userId: string) => Promise<void>;
+    reply: (id: string, reply: { id: string; userId: string; text: string; createdAt: number }) => Promise<void>;
+    remove: (id: string) => Promise<void>;
+  };
+  highlights: {
+    all: () => Promise<Highlight[]>;
+    add: (hl: Highlight) => Promise<Highlight>;
+    remove: (id: string) => Promise<void>;
   };
   notifications: {
     all: () => Promise<Notification[]>;
@@ -59,7 +67,8 @@ export const dataService: DataService = {
   chats: mock.mockChats,
   messages: mock.mockMessages,
   statuses: mock.mockStatuses,
+  highlights: mock.mockHighlights,
   notifications: mock.mockNotifications,
 };
 
-export type { Chat, Message, Notification, StatusItem, UserProfile } from '@/types';
+export type { Chat, Message, Notification, StatusItem, StatusReaction, StatusReply, Highlight, UserProfile } from '@/types';

@@ -1,14 +1,21 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Plus, Eye, X, Camera, ChevronLeft, ChevronRight, Type,
-  VolumeX, MoreVertical, Trash2, AlertCircle, RefreshCw, Image as ImageIcon,
+  Plus, Type, Camera, MoreVertical, Trash2, AlertCircle, RefreshCw,
+  VolumeX, Eye, Heart, Send,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { UserAvatar } from '@/components/shared/UserAvatar';
 import { StatusRing } from '@/components/status/StatusRing';
+import { StatusCard } from '@/components/status/StatusCard';
 import { MyStatusSkeleton, StatusListSkeleton } from '@/components/status/StatusSkeletons';
+import { StatusViewer } from '@/components/status/StatusViewer';
+import { TextStatusComposer } from '@/components/status/TextStatusComposer';
+import { ImageStatusComposer } from '@/components/status/ImageStatusComposer';
+import { HighlightsSection } from '@/components/status/HighlightsSection';
+import { HighlightViewer } from '@/components/status/HighlightViewer';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
@@ -16,47 +23,53 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { dataService } from '@/services/dataService';
 import { useAuthStore } from '@/store/authStore';
+import { useChatStore } from '@/store/chatStore';
 import { formatRelativeTime } from '@/utils';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { nanoid } from 'nanoid';
-import type { StatusItem, StatusGroup } from '@/types';
-
-const STATUS_USER_MAP: Record<string, { name: string; photo: string }> = {
-  u_sofia: { name: 'Sofia Romano', photo: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&fit=crop' },
-  u_marcus: { name: 'Marcus Reid', photo: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&fit=crop' },
-  u_alice: { name: 'Alice Chen', photo: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&fit=crop' },
-  u_kenji: { name: 'Kenji Tanaka', photo: 'https://images.pexels.com/photos/1681010/pexels-photo-1681010.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&fit=crop' },
-  u_priya: { name: 'Priya Sharma', photo: 'https://images.pexels.com/photos/733872/pexels-photo-733872.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&fit=crop' },
-};
-
-const TEXT_GRADIENTS = [
-  'from-emerald-500 to-teal-700',
-  'from-sky-500 to-blue-700',
-  'from-rose-500 to-pink-700',
-  'from-amber-500 to-orange-700',
-  'from-violet-500 to-purple-700',
-];
+import { STATUS_USER_MAP, STATUS_EXPIRY_MS, TEXT_GRADIENTS } from '@/components/status/statusConfig';
+import type { StatusItem, StatusGroup, Highlight } from '@/types';
 
 type LoadState = 'loading' | 'loaded' | 'error';
+type ComposerType = 'text' | 'image' | null;
 
 export default function StatusPage() {
-  const me = useAuthStore((s) => s.user);
+  const me = useAuthStore(s => s.user);
+  const navigate = useNavigate();
+  const chats = useChatStore(s => s.chats);
+  const upsertChat = useChatStore(s => s.upsertChat);
+  const setActiveChat = useChatStore(s => s.setActiveChat);
+
   const [groups, setGroups] = useState<StatusGroup[]>([]);
   const [mutedIds, setMutedIds] = useState<Set<string>>(new Set());
   const [loadState, setLoadState] = useState<LoadState>('loading');
   const [viewing, setViewing] = useState<{ group: StatusGroup; index: number } | null>(null);
-  const [textStatusOpen, setTextStatusOpen] = useState(false);
-  const [textValue, setTextValue] = useState('');
-  const [textGradient, setTextGradient] = useState(0);
-  const meId = me?.id ?? 'me';
+  const [composer, setComposer] = useState<ComposerType>(null);
+  const [myStatusItems, setMyStatusItems] = useState<StatusItem[]>([]);
+  const [highlights, setHighlights] = useState<Highlight[]>([]);
+  const [viewingHighlight, setViewingHighlight] = useState<Highlight | null>(null);
 
-  const loadStatuses = useCallback(async () => {
+  const meId = me?.id ?? 'me';
+  const meName = me?.name ?? 'You';
+
+  const loadAll = useCallback(async () => {
     setLoadState('loading');
     try {
-      const data = await dataService.statuses.all();
+      const [statuses, hls] = await Promise.all([
+        dataService.statuses.all(),
+        dataService.highlights.all(),
+      ]);
+
+      // My statuses
+      const mine = statuses
+        .filter(s => s.userId === meId)
+        .sort((a, b) => a.createdAt - b.createdAt);
+      setMyStatusItems(mine);
+
+      // Contact groups
       const byUser = new Map<string, StatusItem[]>();
-      for (const s of data) {
+      for (const s of statuses) {
         if (s.userId === meId) continue;
         if (!byUser.has(s.userId)) byUser.set(s.userId, []);
         byUser.get(s.userId)!.push(s);
@@ -64,13 +77,16 @@ export default function StatusPage() {
       const gs: StatusGroup[] = [];
       for (const [userId, items] of byUser) {
         const info = STATUS_USER_MAP[userId];
+        const sorted = items.sort((a, b) => a.createdAt - b.createdAt);
         gs.push({
           userId,
           userName: info?.name ?? 'Unknown',
           userPhoto: info?.photo ?? null,
-          items: items.sort((a, b) => a.createdAt - b.createdAt),
-          hasUnviewed: items.some((i) => !i.viewers.find((v) => v.userId === meId)),
+          items: sorted,
+          hasUnviewed: sorted.some(i => !i.viewers.find(v => v.userId === meId)),
           muted: false,
+          totalReactions: sorted.reduce((sum, i) => sum + (i.reactions?.length ?? 0), 0),
+          totalReplies: sorted.reduce((sum, i) => sum + (i.replies?.length ?? 0), 0),
         });
       }
       gs.sort((a, b) => {
@@ -79,28 +95,15 @@ export default function StatusPage() {
         return bTime - aTime;
       });
       setGroups(gs);
+      setHighlights(hls);
       setLoadState('loaded');
     } catch {
       setLoadState('error');
     }
   }, [meId]);
 
-  useEffect(() => { loadStatuses(); }, [loadStatuses]);
+  useEffect(() => { loadAll(); }, [loadAll]);
 
-  // My own statuses
-  const myStatuses = useMemo(() => {
-    return groups.flatMap(g => g.items).filter(s => s.userId === meId);
-  }, [groups, meId]);
-
-  // Actually we need to fetch my statuses separately since we filter them out above
-  const [myStatusItems, setMyStatusItems] = useState<StatusItem[]>([]);
-  useEffect(() => {
-    dataService.statuses.all().then((data) => {
-      setMyStatusItems(data.filter((s) => s.userId === meId).sort((a, b) => a.createdAt - b.createdAt));
-    });
-  }, [meId, loadState]);
-
-  // Categorize groups into recent, viewed, and muted
   const { recentGroups, viewedGroups, mutedGroups } = useMemo(() => {
     const recent: StatusGroup[] = [];
     const viewed: StatusGroup[] = [];
@@ -114,7 +117,7 @@ export default function StatusPage() {
   }, [groups, mutedIds]);
 
   function toggleMute(userId: string) {
-    setMutedIds((prev) => {
+    setMutedIds(prev => {
       const next = new Set(prev);
       if (next.has(userId)) { next.delete(userId); toast.success('Unmuted status updates'); }
       else { next.add(userId); toast.success('Muted status updates'); }
@@ -123,58 +126,106 @@ export default function StatusPage() {
   }
 
   function viewStatus(group: StatusGroup) {
-    const firstUnviewed = group.items.findIndex((i) => !i.viewers.find((v) => v.userId === meId));
-    setViewing({ group, index: firstUnviewed >= 0 ? firstUnviewed : 0 });
-    const item = group.items[firstUnviewed >= 0 ? firstUnviewed : 0];
+    const firstUnviewed = group.items.findIndex(i => !i.viewers.find(v => v.userId === meId));
+    const idx = firstUnviewed >= 0 ? firstUnviewed : 0;
+    setViewing({ group, index: idx });
+    const item = group.items[idx];
     if (item) dataService.statuses.view(item.id, meId);
   }
 
   function viewMyStatus() {
-    if (myStatusItems.length === 0) { setTextStatusOpen(true); return; }
+    if (myStatusItems.length === 0) { setComposer('text'); return; }
     const myGroup: StatusGroup = {
       userId: meId,
-      userName: me?.name ?? 'You',
+      userName: meName,
       userPhoto: me?.photoURL ?? null,
       items: myStatusItems,
       hasUnviewed: false,
       muted: false,
+      totalReactions: myStatusItems.reduce((s, i) => s + (i.reactions?.length ?? 0), 0),
+      totalReplies: myStatusItems.reduce((s, i) => s + (i.replies?.length ?? 0), 0),
     };
     setViewing({ group: myGroup, index: 0 });
   }
 
-  async function deleteMyStatus() {
-    // Delete all my status items from the store
-    for (const item of myStatusItems) {
-      // We don't have a delete API, so we'll just clear via re-seeding
-      // For the demo, we reload after "deleting" by removing from local state
-    }
-    setMyStatusItems([]);
-    toast.success('Status deleted');
-    // Reload to reflect changes
-    loadStatuses();
+  async function deleteMyStatusItem(itemId: string) {
+    await dataService.statuses.remove(itemId);
+    setMyStatusItems(prev => prev.filter(s => s.id !== itemId));
   }
 
-  function postTextStatus() {
-    if (!textValue.trim()) return;
+  function handleReply(userId: string, userName: string, text: string) {
+    // Find or create a direct chat with this user
+    const existing = chats.find(c => c.type === 'direct' && c.participantIds.includes(userId));
+    if (existing) {
+      navigate(`/chats/${existing.id}`);
+    } else {
+      // Navigate to chats page — the user can start a new chat
+      navigate('/chats');
+      toast.info(`Reply "${text.slice(0, 30)}${text.length > 30 ? '…' : ''}" — open a chat with ${userName}`);
+    }
+  }
+
+  async function postTextStatus(data: {
+    content: string;
+    background: string;
+    fontFamily: string;
+    fontSize: string;
+    textAlign: 'left' | 'center' | 'right';
+  }) {
     const status: StatusItem = {
       id: nanoid(),
       userId: meId,
       type: 'text',
-      content: textValue,
-      background: TEXT_GRADIENTS[textGradient],
+      content: data.content,
+      background: data.background,
+      fontFamily: data.fontFamily,
+      fontSize: 'md',
+      textAlign: data.textAlign,
       viewers: [],
+      reactions: [],
+      replies: [],
       createdAt: Date.now(),
-      expiresAt: Date.now() + 1000 * 60 * 60 * 24,
+      expiresAt: Date.now() + STATUS_EXPIRY_MS,
     };
-    dataService.statuses.add(status).then(() => {
-      setTextStatusOpen(false);
-      setTextValue('');
-      toast.success('Status posted');
-      setMyStatusItems((prev) => [...prev, status]);
-    });
+    await dataService.statuses.add(status);
+    setMyStatusItems(prev => [...prev, status]);
+    setComposer(null);
+    toast.success('Status posted');
+  }
+
+  async function postImageStatus(data: { content: string; caption: string }) {
+    const status: StatusItem = {
+      id: nanoid(),
+      userId: meId,
+      type: 'image',
+      content: data.content,
+      caption: data.caption || undefined,
+      viewers: [],
+      reactions: [],
+      replies: [],
+      createdAt: Date.now(),
+      expiresAt: Date.now() + STATUS_EXPIRY_MS,
+    };
+    await dataService.statuses.add(status);
+    setMyStatusItems(prev => [...prev, status]);
+    setComposer(null);
+    toast.success('Status posted');
+  }
+
+  async function addHighlight(hl: Highlight) {
+    await dataService.highlights.add(hl);
+    setHighlights(prev => [...prev, hl]);
+  }
+
+  async function deleteHighlight(id: string) {
+    await dataService.highlights.remove(id);
+    setHighlights(prev => prev.filter(h => h.id !== id));
+    toast.success('Highlight deleted');
   }
 
   const hasMyStatus = myStatusItems.length > 0;
+  const myViews = myStatusItems.reduce((s, i) => s + i.viewers.length, 0);
+  const myReactions = myStatusItems.reduce((s, i) => s + (i.reactions?.length ?? 0), 0);
 
   return (
     <div className="flex h-full flex-col">
@@ -182,9 +233,14 @@ export default function StatusPage() {
         title="Status"
         subtitle="Share moments that disappear in 24h"
         actions={
-          <Button size="icon" variant="ghost" onClick={() => setTextStatusOpen(true)} aria-label="Text status">
-            <Type className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button size="icon" variant="ghost" onClick={() => setComposer('text')} aria-label="Text status">
+              <Type className="h-5 w-5" />
+            </Button>
+            <Button size="icon" variant="ghost" onClick={() => setComposer('image')} aria-label="Photo status">
+              <Camera className="h-5 w-5" />
+            </Button>
+          </div>
         }
       />
 
@@ -203,31 +259,34 @@ export default function StatusPage() {
                 onClick={viewMyStatus}
                 className="card-soft group flex w-full items-center gap-3 p-3.5 text-left transition-all duration-200 hover:shadow-soft-lg active:scale-[0.99]"
               >
-                {/* Avatar with ring or add badge */}
                 <div className="relative shrink-0">
                   {hasMyStatus ? (
-                    <StatusRing name={me?.name ?? 'You'} src={me?.photoURL} size="md" seen />
+                    <StatusRing name={meName} src={me?.photoURL} size="md" seen />
                   ) : (
                     <>
-                      <UserAvatar name={me?.name ?? 'You'} src={me?.photoURL} size="md" />
+                      <UserAvatar name={meName} src={me?.photoURL} size="md" />
                       <span className="absolute -bottom-1 -right-1 grid h-5 w-5 place-items-center rounded-full bg-primary text-primary-foreground ring-2 ring-card transition-transform group-hover:scale-110">
                         <Plus className="h-3 w-3" strokeWidth={2.5} />
                       </span>
                     </>
                   )}
                 </div>
-                {/* Text */}
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold leading-tight">
-                    {hasMyStatus ? 'My status' : 'Add to my status'}
+                    {hasMyStatus ? 'My status' : 'Share a moment'}
                   </p>
                   <p className="mt-0.5 truncate text-sm text-muted-foreground">
                     {hasMyStatus
-                      ? `${myStatusItems.length} update${myStatusItems.length > 1 ? 's' : ''} • ${formatRelativeTime(myStatusItems[myStatusItems.length - 1].createdAt)}`
-                      : 'Tap to share a photo, video, or text'}
+                      ? `${myStatusItems.length} update${myStatusItems.length > 1 ? 's' : ''} · ${formatRelativeTime(myStatusItems[myStatusItems.length - 1].createdAt)}`
+                      : 'Your status disappears after 24 hours'}
                   </p>
+                  {hasMyStatus && (myViews > 0 || myReactions > 0) && (
+                    <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground/70">
+                      {myViews > 0 && <span className="flex items-center gap-1"><Eye className="h-3 w-3" /> {myViews} views</span>}
+                      {myReactions > 0 && <span className="flex items-center gap-1"><Heart className="h-3 w-3 fill-rose-500/60 text-rose-500/60" /> {myReactions}</span>}
+                    </div>
+                  )}
                 </div>
-                {/* Right action */}
                 {hasMyStatus ? (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -240,28 +299,36 @@ export default function StatusPage() {
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" sideOffset={4} className="w-44 rounded-xl">
-                      <DropdownMenuItem className="gap-2 rounded-lg" onClick={(e) => { e.preventDefault(); deleteMyStatus(); }}>
+                      <DropdownMenuItem className="gap-2 rounded-lg" onClick={(e) => { e.preventDefault(); viewMyStatus(); }}>
+                        <Eye className="h-4 w-4" /> View status
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="gap-2 rounded-lg"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          myStatusItems.forEach(s => deleteMyStatusItem(s.id));
+                          toast.success('All statuses deleted');
+                        }}
+                      >
                         <Trash2 className="h-4 w-4 text-destructive" />
-                        <span className="text-destructive">Delete status</span>
+                        <span className="text-destructive">Delete all</span>
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 ) : (
                   <div className="flex shrink-0 items-center gap-1">
                     <Button
-                      size="icon"
-                      variant="ghost"
+                      size="icon" variant="ghost"
                       className="h-9 w-9 rounded-full text-muted-foreground hover:bg-muted hover:text-primary"
-                      onClick={(e) => { e.stopPropagation(); setTextStatusOpen(true); }}
+                      onClick={(e) => { e.stopPropagation(); setComposer('text'); }}
                       aria-label="Add text status"
                     >
                       <Type className="h-4 w-4" />
                     </Button>
                     <Button
-                      size="icon"
-                      variant="ghost"
+                      size="icon" variant="ghost"
                       className="h-9 w-9 rounded-full text-muted-foreground hover:bg-muted hover:text-primary"
-                      onClick={(e) => { e.stopPropagation(); setTextStatusOpen(true); }}
+                      onClick={(e) => { e.stopPropagation(); setComposer('image'); }}
                       aria-label="Add photo status"
                     >
                       <Camera className="h-4 w-4" />
@@ -270,6 +337,17 @@ export default function StatusPage() {
                 )}
               </button>
             </div>
+          )}
+
+          {/* ============ Highlights ============ */}
+          {loadState === 'loaded' && (
+            <HighlightsSection
+              highlights={highlights}
+              myStatusItems={myStatusItems}
+              onAdd={addHighlight}
+              onDelete={deleteHighlight}
+              onView={setViewingHighlight}
+            />
           )}
 
           {/* ============ Error State ============ */}
@@ -282,7 +360,7 @@ export default function StatusPage() {
                 <p className="font-semibold">Could not load statuses</p>
                 <p className="mt-1 text-sm text-muted-foreground">Something went wrong. Please try again.</p>
               </div>
-              <Button variant="outline" size="sm" onClick={loadStatuses}>
+              <Button variant="outline" size="sm" onClick={loadAll}>
                 <RefreshCw className="mr-1.5 h-4 w-4" /> Retry
               </Button>
             </div>
@@ -304,10 +382,11 @@ export default function StatusPage() {
                 <div className="space-y-2">
                   <SectionLabel>Recent updates</SectionLabel>
                   <div className="card-soft divide-y divide-border/60">
-                    {recentGroups.map((group) => (
+                    {recentGroups.map((group, i) => (
                       <StatusCard
                         key={group.userId}
                         group={group}
+                        index={i}
                         onClick={() => viewStatus(group)}
                         onMute={() => toggleMute(group.userId)}
                       />
@@ -321,11 +400,12 @@ export default function StatusPage() {
                 <div className="space-y-2">
                   <SectionLabel>Viewed updates</SectionLabel>
                   <div className="card-soft divide-y divide-border/60">
-                    {viewedGroups.map((group) => (
+                    {viewedGroups.map((group, i) => (
                       <StatusCard
                         key={group.userId}
                         group={group}
                         seen
+                        index={i}
                         onClick={() => viewStatus(group)}
                         onMute={() => toggleMute(group.userId)}
                       />
@@ -343,12 +423,13 @@ export default function StatusPage() {
                     </span>
                   </SectionLabel>
                   <div className="card-soft divide-y divide-border/60">
-                    {mutedGroups.map((group) => (
+                    {mutedGroups.map((group, i) => (
                       <StatusCard
                         key={group.userId}
                         group={group}
                         seen
                         muted
+                        index={i}
                         onClick={() => viewStatus(group)}
                         onMute={() => toggleMute(group.userId)}
                       />
@@ -364,7 +445,7 @@ export default function StatusPage() {
                   title="No status updates"
                   description="Status updates from your contacts will appear here. Share your own moment to get started."
                   action={
-                    <Button size="sm" onClick={() => setTextStatusOpen(true)}>
+                    <Button size="sm" onClick={() => setComposer('text')}>
                       <Plus className="mr-1.5 h-4 w-4" /> Add status
                     </Button>
                   }
@@ -382,25 +463,46 @@ export default function StatusPage() {
             group={viewing.group}
             startIndex={viewing.index}
             onClose={() => setViewing(null)}
-            onChangeIndex={(i) => {
+            onIndexChange={(i) => {
               const item = viewing.group.items[i];
-              if (item) dataService.statuses.view(item.id, meId);
+              if (item && !item.viewers.find(v => v.userId === meId)) {
+                dataService.statuses.view(item.id, meId);
+              }
             }}
             meId={meId}
+            meName={meName}
+            onReply={handleReply}
+            onDelete={deleteMyStatusItem}
           />
         )}
       </AnimatePresence>
 
-      {/* Text status composer */}
+      {/* Highlight viewer */}
       <AnimatePresence>
-        {textStatusOpen && (
+        {viewingHighlight && (
+          <HighlightViewer
+            highlight={viewingHighlight}
+            onClose={() => setViewingHighlight(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Text composer */}
+      <AnimatePresence>
+        {composer === 'text' && (
           <TextStatusComposer
-            value={textValue}
-            onChange={setTextValue}
-            gradient={textGradient}
-            onGradientChange={setTextGradient}
-            onClose={() => setTextStatusOpen(false)}
+            onClose={() => setComposer(null)}
             onPost={postTextStatus}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Image composer */}
+      <AnimatePresence>
+        {composer === 'image' && (
+          <ImageStatusComposer
+            onClose={() => setComposer(null)}
+            onPost={postImageStatus}
           />
         )}
       </AnimatePresence>
@@ -408,353 +510,10 @@ export default function StatusPage() {
   );
 }
 
-// ============================================================================
-// Sub-components
-// ============================================================================
-
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <h2 className="flex items-center gap-1.5 px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
       {children}
     </h2>
-  );
-}
-
-function StatusCard({
-  group, seen = false, muted = false, onClick, onMute,
-}: {
-  group: StatusGroup;
-  seen?: boolean;
-  muted?: boolean;
-  onClick: () => void;
-  onMute: () => void;
-}) {
-  const latestItem = group.items[group.items.length - 1];
-  const isImage = latestItem?.type === 'image';
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25 }}
-      className="group relative flex w-full items-center gap-3 p-3.5 transition-colors hover:bg-muted/40"
-    >
-      <button onClick={onClick} className="flex flex-1 items-center gap-3 text-left">
-        <StatusRing
-          name={group.userName}
-          src={group.userPhoto}
-          size="md"
-          seen={seen}
-          muted={muted}
-        />
-        <div className="min-w-0 flex-1">
-          <p className="font-semibold leading-tight">{group.userName}</p>
-          <div className="mt-0.5 flex items-center gap-1.5 text-sm text-muted-foreground">
-            {isImage && <ImageIcon className="h-3.5 w-3.5 shrink-0 opacity-60" />}
-            <span className="truncate">
-              {latestItem?.type === 'text'
-                ? latestItem.content.length > 40
-                  ? `${latestItem.content.slice(0, 40)}…`
-                  : latestItem.content
-                : latestItem?.caption ?? 'Photo'}
-            </span>
-            <span className="shrink-0">·</span>
-            <span className="shrink-0">{formatRelativeTime(latestItem?.createdAt ?? Date.now())}</span>
-          </div>
-        </div>
-      </button>
-      {/* Mute / unmute toggle */}
-      <button
-        onClick={(e) => { e.stopPropagation(); onMute(); }}
-        className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-muted-foreground/60 opacity-0 transition-all hover:bg-muted hover:text-foreground group-hover:opacity-100"
-        aria-label={muted ? 'Unmute' : 'Mute'}
-      >
-        <VolumeX className="h-4 w-4" />
-      </button>
-    </motion.div>
-  );
-}
-
-// ============================================================================
-// Status Viewer
-// ============================================================================
-
-function StatusViewer({
-  group, startIndex, onClose, onChangeIndex, meId,
-}: {
-  group: StatusGroup;
-  startIndex: number;
-  onClose: () => void;
-  onChangeIndex: (i: number) => void;
-  meId: string;
-}) {
-  const [index, setIndex] = useState(startIndex);
-  const [showViewers, setShowViewers] = useState(false);
-  const [paused, setPaused] = useState(false);
-  const item = group.items[index];
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const next = useCallback(() => {
-    if (index < group.items.length - 1) {
-      setIndex((i) => i + 1);
-      onChangeIndex(index + 1);
-    } else {
-      onClose();
-    }
-  }, [index, group.items.length, onChangeIndex, onClose]);
-
-  const prev = useCallback(() => {
-    if (index > 0) setIndex((i) => i - 1);
-  }, [index]);
-
-  // Auto-advance timer
-  useEffect(() => {
-    if (paused || showViewers) return;
-    timerRef.current = setTimeout(next, 5000);
-    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  }, [index, paused, showViewers, next]);
-
-  // Keyboard navigation
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose();
-      if (e.key === 'ArrowRight') next();
-      if (e.key === 'ArrowLeft') prev();
-      if (e.key === ' ') { e.preventDefault(); setPaused((p) => !p); }
-    }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [next, prev, onClose]);
-
-  const isMyStatus = group.userId === meId;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex flex-col bg-black"
-    >
-      {/* Progress bars */}
-      <div className="flex gap-1 px-4 pt-4">
-        {group.items.map((_, i) => (
-          <div key={i} className="h-0.5 flex-1 overflow-hidden rounded-full bg-white/25">
-            <motion.div
-              className="h-full bg-white"
-              initial={{ width: i < index ? '100%' : '0%' }}
-              animate={{ width: i === index ? '100%' : i < index ? '100%' : '0%' }}
-              transition={{ duration: i === index && !paused ? 5 : 0, ease: 'linear' }}
-            />
-          </div>
-        ))}
-      </div>
-
-      {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3">
-        <UserAvatar name={group.userName} src={group.userPhoto} size="sm" />
-        <div className="flex-1 min-w-0">
-          <p className="truncate font-medium text-white">{group.userName}</p>
-          <p className="text-xs text-white/60">{formatRelativeTime(item.createdAt)}</p>
-        </div>
-        {isMyStatus && (
-          <button
-            onClick={() => setShowViewers((v) => !v)}
-            className="grid h-8 w-8 place-items-center rounded-full text-white/70 transition-colors hover:bg-white/10"
-            aria-label="View viewers"
-          >
-            <Eye className="h-4 w-4" />
-          </button>
-        )}
-        <button
-          onClick={() => setPaused((p) => !p)}
-          className="grid h-8 w-8 place-items-center rounded-full text-white/70 transition-colors hover:bg-white/10"
-          aria-label={paused ? 'Play' : 'Pause'}
-        >
-          {paused ? <ChevronRight className="h-4 w-4" /> : <div className="flex gap-0.5"><span className="h-3 w-1 rounded-sm bg-white/70" /><span className="h-3 w-1 rounded-sm bg-white/70" /></div>}
-        </button>
-        <button
-          onClick={onClose}
-          className="grid h-8 w-8 place-items-center rounded-full text-white/70 transition-colors hover:bg-white/10"
-          aria-label="Close"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-
-      {/* Content — tap left/right to navigate, tap middle to pause */}
-      <div
-        className="relative flex flex-1 items-center justify-center overflow-hidden"
-        onPointerDown={(e) => {
-          // Left third = prev, right third = next
-          const rect = e.currentTarget.getBoundingClientRect();
-          const x = e.clientX - rect.left;
-          if (x < rect.width * 0.3) prev();
-          else if (x > rect.width * 0.7) next();
-          else setPaused((p) => !p);
-        }}
-      >
-        {item.type === 'image' ? (
-          <img
-            src={item.content}
-            alt={item.caption ?? ''}
-            className="max-h-full max-w-full object-contain"
-            loading="lazy"
-          />
-        ) : item.type === 'video' ? (
-          <video src={item.content} className="max-h-full max-w-full" autoPlay controls />
-        ) : (
-          <div className={cn('flex h-full w-full items-center justify-center bg-gradient-to-br p-8', item.background ?? 'from-emerald-500 to-teal-700')}>
-            <p className="text-center text-3xl font-bold text-white">{item.content}</p>
-            {item.caption && <p className="absolute bottom-8 text-center text-white/80">{item.caption}</p>}
-          </div>
-        )}
-
-        {/* Desktop nav arrows */}
-        {index > 0 && (
-          <button
-            onClick={(e) => { e.stopPropagation(); prev(); }}
-            className="absolute left-2 top-1/2 hidden h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 md:grid"
-            aria-label="Previous"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-        )}
-        {index < group.items.length - 1 && (
-          <button
-            onClick={(e) => { e.stopPropagation(); next(); }}
-            className="absolute right-2 top-1/2 hidden h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 md:grid"
-            aria-label="Next"
-          >
-            <ChevronRight className="h-5 w-5" />
-          </button>
-        )}
-      </div>
-
-      {/* Viewers panel (my status only) */}
-      <AnimatePresence>
-        {showViewers && isMyStatus && (
-          <motion.div
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="max-h-64 overflow-y-auto rounded-t-2xl bg-panel p-4"
-          >
-            <h3 className="mb-3 font-semibold">Viewed by {item.viewers.length}</h3>
-            {item.viewers.length === 0 ? (
-              <p className="py-4 text-center text-sm text-muted-foreground">No views yet</p>
-            ) : (
-              <div className="space-y-2">
-                {item.viewers.map((v) => (
-                  <div key={v.userId} className="flex items-center gap-3">
-                    <UserAvatar
-                      name={STATUS_USER_MAP[v.userId]?.name ?? 'Viewer'}
-                      src={STATUS_USER_MAP[v.userId]?.photo}
-                      size="sm"
-                    />
-                    <span className="text-sm">{STATUS_USER_MAP[v.userId]?.name ?? v.userId}</span>
-                    <span className="ml-auto text-xs text-muted-foreground">{formatRelativeTime(v.viewedAt)}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
-  );
-}
-
-// ============================================================================
-// Text Status Composer
-// ============================================================================
-
-function TextStatusComposer({
-  value, onChange, gradient, onGradientChange, onClose, onPost,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  gradient: number;
-  onGradientChange: (i: number) => void;
-  onClose: () => void;
-  onPost: () => void;
-}) {
-  const taRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    taRef.current?.focus();
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose();
-    }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 grid place-items-center bg-black/80 p-4"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.9, opacity: 0 }}
-        transition={{ type: 'spring', damping: 26, stiffness: 300 }}
-        onClick={(e) => e.stopPropagation()}
-        className={cn(
-          'relative flex h-80 w-full max-w-md flex-col items-center justify-center rounded-3xl bg-gradient-to-br p-8 shadow-2xl',
-          TEXT_GRADIENTS[gradient],
-        )}
-      >
-        <button
-          onClick={onClose}
-          className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-black/20 text-white transition-colors hover:bg-black/30"
-          aria-label="Close"
-        >
-          <X className="h-4 w-4" />
-        </button>
-
-        <textarea
-          ref={taRef}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); onPost(); }
-            if (e.key === 'Escape') { e.preventDefault(); onClose(); }
-          }}
-          placeholder="Type your status…"
-          maxLength={120}
-          className="w-full resize-none bg-transparent text-center text-2xl font-bold text-white outline-none placeholder:text-white/60"
-          rows={4}
-        />
-
-        {/* Gradient picker */}
-        <div className="mt-4 flex gap-2.5">
-          {TEXT_GRADIENTS.map((g, i) => (
-            <button
-              key={g}
-              onClick={() => onGradientChange(i)}
-              className={cn(
-                'h-7 w-7 rounded-full bg-gradient-to-br ring-2 transition-all duration-200',
-                g,
-                gradient === i ? 'scale-110 ring-white' : 'ring-transparent hover:scale-105',
-              )}
-              aria-label={`Background ${i + 1}`}
-            />
-          ))}
-        </div>
-
-        <Button
-          onClick={onPost}
-          disabled={!value.trim()}
-          className="mt-6 bg-white text-black hover:bg-white/90 disabled:opacity-40"
-        >
-          Post status
-        </Button>
-      </motion.div>
-    </motion.div>
   );
 }

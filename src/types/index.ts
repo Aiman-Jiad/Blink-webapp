@@ -113,6 +113,20 @@ export interface Chat {
   typingUsers: string[];
 }
 
+export interface StatusReaction {
+  emoji: string;
+  userId: string;
+  createdAt: number;
+}
+
+export interface StatusReply {
+  id: string;
+  statusId: string;
+  userId: string;
+  text: string;
+  createdAt: number;
+}
+
 export interface StatusItem {
   id: string;
   userId: string;
@@ -120,9 +134,23 @@ export interface StatusItem {
   content: string; // url or text
   caption?: string;
   background?: string; // for text statuses
+  fontFamily?: string;
+  fontSize?: 'sm' | 'md' | 'lg';
+  textAlign?: 'left' | 'center' | 'right';
   viewers: { userId: string; viewedAt: number }[];
+  reactions: StatusReaction[];
+  replies: StatusReply[];
   createdAt: number;
   expiresAt: number;
+}
+
+export interface Highlight {
+  id: string;
+  userId: string;
+  title: string;
+  coverColor: string;
+  items: { type: 'image' | 'text'; content: string; caption?: string; background?: string; createdAt: number }[];
+  createdAt: number;
 }
 
 export interface StatusGroup {
@@ -132,6 +160,8 @@ export interface StatusGroup {
   items: StatusItem[];
   hasUnviewed: boolean;
   muted: boolean;
+  totalReactions: number;
+  totalReplies: number;
 }
 
 export type CallType = 'audio' | 'video';

@@ -13,6 +13,7 @@ import type {
   Message,
   Chat,
   StatusItem,
+  Highlight,
   Notification,
 } from '@/types';
 
@@ -21,13 +22,14 @@ const KEYS = {
   chats: 'blink:chats',
   messages: 'blink:messages',
   statuses: 'blink:statuses',
+  highlights: 'blink:highlights',
   notifications: 'blink:notifications',
   session: 'blink:session',
   seeded: 'blink:seeded',
 } as const;
 
 // Bump when seed data changes to force a re-seed for existing users.
-const SEED_VERSION = 3;
+const SEED_VERSION = 4;
 
 function read<T>(key: string, fallback: T): T {
   try {
@@ -296,6 +298,8 @@ const SEED_STATUSES: StatusItem[] = [
     content: 'https://images.pexels.com/photos/2387873/pexels-photo-2387873.jpeg?auto=compress&cs=tinysrgb&w=600',
     caption: 'Golden hour in Lisbon 🌅',
     viewers: [],
+    reactions: [],
+    replies: [],
     createdAt: Date.now() - 1000 * 60 * 30,
     expiresAt: Date.now() + 1000 * 60 * 60 * 23,
   },
@@ -306,6 +310,8 @@ const SEED_STATUSES: StatusItem[] = [
     content: 'Best trip ever ✨',
     background: 'from-rose-500 to-pink-700',
     viewers: [],
+    reactions: [],
+    replies: [],
     createdAt: Date.now() - 1000 * 60 * 28,
     expiresAt: Date.now() + 1000 * 60 * 60 * 23,
   },
@@ -317,6 +323,8 @@ const SEED_STATUSES: StatusItem[] = [
     content: 'Shipping is a feature.',
     background: 'from-amber-500 to-orange-700',
     viewers: [{ userId: 'me', viewedAt: Date.now() - 1000 * 60 * 10 }],
+    reactions: [{ emoji: '👍', userId: 'me', createdAt: Date.now() - 1000 * 60 * 9 }],
+    replies: [],
     createdAt: Date.now() - 1000 * 60 * 60 * 2,
     expiresAt: Date.now() + 1000 * 60 * 60 * 22,
   },
@@ -328,6 +336,8 @@ const SEED_STATUSES: StatusItem[] = [
     content: 'https://images.pexels.com/photos/1183266/pexels-photo-1183266.jpeg?auto=compress&cs=tinysrgb&w=600',
     caption: 'New workspace setup 💻',
     viewers: [],
+    reactions: [],
+    replies: [],
     createdAt: Date.now() - 1000 * 60 * 45,
     expiresAt: Date.now() + 1000 * 60 * 60 * 23,
   },
@@ -339,6 +349,8 @@ const SEED_STATUSES: StatusItem[] = [
     content: 'Late night debugging session 🔧',
     background: 'from-sky-500 to-blue-700',
     viewers: [{ userId: 'me', viewedAt: Date.now() - 1000 * 60 * 60 * 1 }],
+    reactions: [],
+    replies: [],
     createdAt: Date.now() - 1000 * 60 * 60 * 3,
     expiresAt: Date.now() + 1000 * 60 * 60 * 21,
   },
@@ -350,8 +362,34 @@ const SEED_STATUSES: StatusItem[] = [
     content: 'https://images.pexels.com/photos/206359/pexels-photo-206359.jpeg?auto=compress&cs=tinysrgb&w=600',
     caption: 'Coffee art goals ☕',
     viewers: [{ userId: 'me', viewedAt: Date.now() - 1000 * 60 * 60 * 4 }],
+    reactions: [{ emoji: '❤️', userId: 'me', createdAt: Date.now() - 1000 * 60 * 60 * 3 }],
+    replies: [],
     createdAt: Date.now() - 1000 * 60 * 60 * 5,
     expiresAt: Date.now() + 1000 * 60 * 60 * 19,
+  },
+];
+
+const SEED_HIGHLIGHTS: Highlight[] = [
+  {
+    id: nanoid(),
+    userId: 'me',
+    title: 'Travel',
+    coverColor: 'from-sky-500 to-blue-700',
+    items: [
+      { type: 'image', content: 'https://images.pexels.com/photos/2387873/pexels-photo-2387873.jpeg?auto=compress&cs=tinysrgb&w=600', caption: 'Lisbon sunset', createdAt: Date.now() - 1000 * 60 * 60 * 48 },
+      { type: 'image', content: 'https://images.pexels.com/photos/206359/pexels-photo-206359.jpeg?auto=compress&cs=tinysrgb&w=600', caption: 'Morning coffee', createdAt: Date.now() - 1000 * 60 * 60 * 72 },
+    ],
+    createdAt: Date.now() - 1000 * 60 * 60 * 48,
+  },
+  {
+    id: nanoid(),
+    userId: 'me',
+    title: 'College',
+    coverColor: 'from-emerald-500 to-teal-700',
+    items: [
+      { type: 'text', content: 'Finals week! 📚', background: 'from-amber-500 to-orange-700', createdAt: Date.now() - 1000 * 60 * 60 * 96 },
+    ],
+    createdAt: Date.now() - 1000 * 60 * 60 * 96,
   },
 ];
 
@@ -362,6 +400,7 @@ export function ensureSeed(): void {
   write(KEYS.chats, SEED_CHATS);
   write(KEYS.messages, seedMessages());
   write(KEYS.statuses, SEED_STATUSES);
+  write(KEYS.highlights, SEED_HIGHLIGHTS);
   write(KEYS.notifications, [] as Notification[]);
   write(KEYS.seeded, true);
   write('blink:seed_version', SEED_VERSION);
@@ -494,7 +533,12 @@ export const mockMessages = {
 
 export const mockStatuses = {
   async all(): Promise<StatusItem[]> {
-    return delay(read<StatusItem[]>(KEYS.statuses, []));
+    const all = read<StatusItem[]>(KEYS.statuses, []);
+    const now = Date.now();
+    // Filter out expired statuses
+    const active = all.filter((s) => s.expiresAt > now);
+    if (active.length !== all.length) write(KEYS.statuses, active);
+    return delay(active);
   },
   async add(status: StatusItem): Promise<StatusItem> {
     const all = read<StatusItem[]>(KEYS.statuses, []);
@@ -509,6 +553,51 @@ export const mockStatuses = {
       s.viewers.push({ userId, viewedAt: Date.now() });
       write(KEYS.statuses, all);
     }
+    return delay(undefined, 40);
+  },
+  async react(id: string, emoji: string, userId: string): Promise<void> {
+    const all = read<StatusItem[]>(KEYS.statuses, []);
+    const s = all.find((x) => x.id === id);
+    if (s) {
+      s.reactions = s.reactions.filter((r) => r.userId !== userId);
+      s.reactions.push({ emoji, userId, createdAt: Date.now() });
+      write(KEYS.statuses, all);
+    }
+    return delay(undefined, 40);
+  },
+  async reply(id: string, reply: { id: string; userId: string; text: string; createdAt: number }): Promise<void> {
+    const all = read<StatusItem[]>(KEYS.statuses, []);
+    const s = all.find((x) => x.id === id);
+    if (s) {
+      s.replies.push({ ...reply, statusId: id });
+      write(KEYS.statuses, all);
+    }
+    return delay(undefined, 40);
+  },
+  async remove(id: string): Promise<void> {
+    const all = read<StatusItem[]>(KEYS.statuses, []);
+    write(KEYS.statuses, all.filter((s) => s.id !== id));
+    return delay(undefined);
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Highlights
+// ---------------------------------------------------------------------------
+
+export const mockHighlights = {
+  async all(): Promise<Highlight[]> {
+    return delay(read<Highlight[]>(KEYS.highlights, []));
+  },
+  async add(hl: Highlight): Promise<Highlight> {
+    const all = read<Highlight[]>(KEYS.highlights, []);
+    all.push(hl);
+    write(KEYS.highlights, all);
+    return delay(hl);
+  },
+  async remove(id: string): Promise<void> {
+    const all = read<Highlight[]>(KEYS.highlights, []);
+    write(KEYS.highlights, all.filter((h) => h.id !== id));
     return delay(undefined);
   },
 };
